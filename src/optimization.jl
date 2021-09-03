@@ -15,7 +15,10 @@ export  addVariables!,
         addCoreDC!,
         addConstraintsGenDC!,
         addConstraintsLineFlowDC!,
-        buildCostSOC
+        buildCostSOC,
+
+        addCoreDeterministic!,
+        resetPowerFlowConstraint!
 
 function addVariables!(opf::Model,sys::Dict,unc::Dict)
     N, Ng = sys[:N], sys[:Ng]
@@ -24,6 +27,15 @@ function addVariables!(opf::Model,sys::Dict,unc::Dict)
     @variable(opf, qg[1:Ng,1:K])
     @variable(opf, e[1:N,1:K])
     @variable(opf, f[1:N,1:K])
+end
+
+# Add all the variables that are optimized for
+function addVariablesDeterministic!(opf::Model,sys::Dict)
+    N, Ng = sys[:N], sys[:Ng]
+    @variable(opf, pg[1:Ng])
+    @variable(opf, qg[1:Ng])
+    @variable(opf, e[1:N])
+    @variable(opf, f[1:N])
 end
 
 function addConsistencyConstraints!(opf::Model)
@@ -42,11 +54,46 @@ function addPowerFlow!(opf::Model,sys::Dict,unc::Dict)
     @constraint(opf, pfQ[i=1:N,k=1:K], q[i,k] == sum( (G[i,j]*(f[i,l1]*e[j,l2]-e[i,l1]*f[j,l2]) - B[i,j]*(e[i,l1]*e[j,l2]+f[i,l1]*f[j,l2]) )*unc[:T3].get([l1-1,l2-1,k-1])/unc[:T2].get([k-1,k-1]) for l2 in 1:K, l1 in 1:K, j in 1:N) )
 end
 
+# branch flows in rectangular coordinates
+function addPowerFlowDeterministic!(opf::Model,sys::Dict)
+    N = sys[:N]
+    e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
+    G, B = real(sys[:Ybus]), imag(sys[:Ybus])
+    p, q = sys[:Cp]*pg - sys[:Cd]*sys[:P], sys[:Cp]*qg - sys[:Cd]*sys[:Q]
+    println(sys[:Cp])
+    println(sys[:Cd])
+    println(p)
+    println(q)
+    @constraint(opf, pfP[i=1:N], p[i] == sum( G[i,j]*(e[i]*e[j]+f[i]*f[j]) + B[i,j]*(f[i]*e[j]-e[i]*f[j]) for j in 1:N) )
+    @constraint(opf, pfQ[i=1:N], q[i] == sum( G[i,j]*(f[i]*e[j]-e[i]*f[j]) - B[i,j]*(e[i]*e[j]+f[i]*f[j]) for j in 1:N) )
+end
+
+# Redefine the PF constraints for the sampled PQ-bus (2)
+function resetPowerFlowConstraint!(opf::Model, sys::Dict)
+    delete(opf, opf[:pfP])
+    delete(opf, opf[:pfQ])
+    unregister(opf, :pfP)
+    unregister(opf, :pfQ)
+
+    N = sys[:N]
+    e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
+    G, B = real(sys[:Ybus]), imag(sys[:Ybus])
+    p, q = sys[:Cp]*pg - sys[:Cd]*sys[:P], sys[:Cp]*qg - sys[:Cd]*sys[:Q]
+    @constraint(opf, pfP[i=1:N], p[i] == sum( G[i,j]*(e[i]*e[j]+f[i]*f[j]) + B[i,j]*(f[i]*e[j]-e[i]*f[j]) for j in 1:N) )
+    @constraint(opf, pfQ[i=1:N], q[i] == sum( G[i,j]*(f[i]*e[j]-e[i]*f[j]) - B[i,j]*(e[i]*e[j]+f[i]*f[j]) for j in 1:N) )
+end
+
 function addSlackBus!(opf::Model)
     e, f = opf[:e], opf[:f]
     K = size(e,2)
     @constraint(opf, slack_e, e[1,:] .== [1; zeros(K-1)])
     @constraint(opf, slack_f, f[1,:] .== zeros(K))
+end
+
+function addSlackBusDeterministic!(opf::Model)
+    e, f = opf[:e], opf[:f]
+    @constraint(opf, slack_e, e[1] == 1)
+    @constraint(opf, slack_f, f[1] == 0)
 end
 
 function addPVBus!(opf::Model,sys::Dict,unc::Dict)
@@ -57,21 +104,51 @@ function addPVBus!(opf::Model,sys::Dict,unc::Dict)
     @constraint(opf, PVBus_P, pg[gen,:] .== [ 0.84; zeros(K-1) ])
 end
 
+# "Set" the variable values of the PV bus by constraining them to exact values for p and v
+function addPVBusDeterministic!(opf::Model)
+    e, f, pg = opf[:e], opf[:f], opf[:pg]
+    bus, gen = 3, 2
+    p = 0.84
+    v = 1.04^2
+    @constraint(opf, PVBus_P, pg[gen] == p) 
+    @constraint(opf, PVBus_V, e[bus]*e[bus]+f[bus]*f[bus] == v) # length of pointer = voltage magnitude
+end
+
+# "Set" value of Bus 2 (sampled bus) by defining new equality constraint
+# function addPQBusDeterministic!(opf::Model, sys::Dict, pq::AbstractVector)
+#     Nd = sys[:Nd]
+#     bus, load = 2, 1
+#     p = pq[1]
+#     q = pq[2]
+#     @constraint(opf, PQBus_P)
+#     @constraint(opf, PQBus_Q)
+# end
+
 function addCost!(opf::Model,sys::Dict,unc::Dict)
     p = opf[:pg]
     Ng, K = size(p)
     @objective(opf, Min, sum( p[i,1] * sys[:costlin][i] + sys[:costquad][i]*sum(p[i,l]^2 * unc[:T2].get([l-1,l-1]) for l in 1:K) for i in 1:Ng) )
 end
 
-function addInitialCondition!(opf::Model,sys::Dict,unc::Dict)
+function addInitialCondition!(opf::Model,sys::Dict)
     e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
     N, K = size(e)
     # [ set_start_value(pg[i], -unc[:pd][i]) for i in 1:length(unc[:pd]) ]
     # [ set_start_value(qg[i], -unc[:qd][i]) for i in 1:length(unc[:qd]) ]
     [ set_start_value(pg_, 0) for pg_ in pg ]
     [ set_start_value(qg_, 0) for qg_ in qg ]
-    [ set_start_value(e_,1) for e_ in e[:,1] ]
+    [ set_start_value(e_,1) for e_ in e[:,1] ] # slack bus(?)
     [ set_start_value(e_,0) for e_ in e[:,2:end] ]
+    [ set_start_value(f_,0) for f_ in f ]
+end
+
+# TODO: why no Flat start? try out?
+function addInitialConditionDeterministic!(opf::Model,sys::Dict)
+    e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
+    [ set_start_value(pg_, 0) for pg_ in pg ]
+    [ set_start_value(qg_, 0) for qg_ in qg ]
+    [ set_start_value(e[1],1) ] # slack bus
+    [ set_start_value(e_,0) for e_ in e[2:end] ]
     [ set_start_value(f_,0) for f_ in f ]
 end
 
@@ -84,12 +161,21 @@ function addInitialCondition!(m::Model,m_sol::Model)
     [ set_start_value(f_, f_sol_) for (f_, f_sol_) in zip(f, f_sol) ]
 end
 
-
+# PCE overloaded OPF
 function addCore!(mod::Model,sys::Dict,unc::Dict)
     addVariables!(mod,sys,unc)
-    addInitialCondition!(mod,sys,unc)
+    addInitialCondition!(mod,sys)
     addPowerFlow!(mod,sys,unc)
     addSlackBus!(mod)
+end
+
+# Standard deterministic OPF
+function addCoreDeterministic!(mod::Model, sys::Dict)
+    addVariablesDeterministic!(mod,sys)
+    addInitialConditionDeterministic!(mod,sys)
+    addPowerFlowDeterministic!(mod, sys)
+    addSlackBusDeterministic!(mod)
+    addPVBusDeterministic!(mod)
 end
 
 function addGenerationConstraint!(i::Int,x::Symbol,mod::Model,sys::Dict,unc::Dict)
