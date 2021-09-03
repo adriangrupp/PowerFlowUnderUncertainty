@@ -7,7 +7,7 @@ function plotHistogram(x::Vector; kwargs...)
     bins = haskey(kwargs, :bins) ? kwargs[:bins] : 70
     color = haskey(kwargs, :color) ? kwargs[:color] : "blue"
     alpha = haskey(kwargs, :alpha) ? kwargs[:alpha] : 0.5
-    plt[:hist](x,normed=true,bins=bins,color=color,alpha=alpha)
+    plt[:hist](x,bins=bins,color=color,alpha=alpha)
     haskey(kwargs,:xlabel) ? xlabel(kwargs[:xlabel]) : nothing
     haskey(kwargs,:ylabel) ? ylabel(kwargs[:ylabel]) : nothing
     grid(true)
