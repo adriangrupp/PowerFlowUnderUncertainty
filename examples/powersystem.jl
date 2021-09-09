@@ -19,6 +19,10 @@ function setupPowerSystem()
     # bus admittance matrix
     Ybus = A'*Ybr*A
 
+    # PQ-Bus specifications
+    P = [2.1,   1.2]
+    Q = [1.785, 1.02]
+
     # PTDF matrix
     Bbr = -diagm(0 => 1 ./ Xbr)
     Bbus = A'*Bbr*A
@@ -26,7 +30,7 @@ function setupPowerSystem()
 
     # book-keeping
     Cp, Cd = [1 0; 0 0; 0 1; 0 0], [0 0; 1 0; 0 0; 0 1 ]
-    Ng, Nd = size(Cp,2), size(Cd,2)
+    Ng, Nd = size(Cp,2), size(Cd,2) # number of generators and demands
     # cost
     costquad, costlin = [2500, 1000], [100, 200]
     # constraints
@@ -70,7 +74,11 @@ function setupPowerSystem()
                 :Nline=>Nline,
                 :costquad=>costquad,
                 :costlin=>costlin,
-                :con=>con
+                :con=>con,
+                :P=>P,
+                :Q=>Q,
+                # :E=>E,
+                # :F=>F
                 )
 end
 ##

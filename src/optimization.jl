@@ -54,16 +54,12 @@ function addPowerFlow!(opf::Model,sys::Dict,unc::Dict)
     @constraint(opf, pfQ[i=1:N,k=1:K], q[i,k] == sum( (G[i,j]*(f[i,l1]*e[j,l2]-e[i,l1]*f[j,l2]) - B[i,j]*(e[i,l1]*e[j,l2]+f[i,l1]*f[j,l2]) )*unc[:T3].get([l1-1,l2-1,k-1])/unc[:T2].get([k-1,k-1]) for l2 in 1:K, l1 in 1:K, j in 1:N) )
 end
 
-# branch flows in rectangular coordinates
+# Branch flows in rectangular coordinates
 function addPowerFlowDeterministic!(opf::Model,sys::Dict)
     N = sys[:N]
     e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
     G, B = real(sys[:Ybus]), imag(sys[:Ybus])
     p, q = sys[:Cp]*pg - sys[:Cd]*sys[:P], sys[:Cp]*qg - sys[:Cd]*sys[:Q]
-    println(sys[:Cp])
-    println(sys[:Cd])
-    println(p)
-    println(q)
     @constraint(opf, pfP[i=1:N], p[i] == sum( G[i,j]*(e[i]*e[j]+f[i]*f[j]) + B[i,j]*(f[i]*e[j]-e[i]*f[j]) for j in 1:N) )
     @constraint(opf, pfQ[i=1:N], q[i] == sum( G[i,j]*(f[i]*e[j]-e[i]*f[j]) - B[i,j]*(e[i]*e[j]+f[i]*f[j]) for j in 1:N) )
 end

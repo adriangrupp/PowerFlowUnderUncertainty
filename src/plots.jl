@@ -19,6 +19,8 @@ function plotHistogram_gen(pg::Matrix, name::String; kwargs...)
     plotHistogram(pg[1,:]; xlabel=name*"_1", ylabel="ρ("*name*"_1)", kwargs...)
     plt[:subplot](224)
     plotHistogram(pg[2,:]; xlabel=name*"_2", ylabel="ρ("*name*"_2)", kwargs...)
+    savefig("plots/$name.pdf")
+    clf()
 end
 
 function plotHistogram_nodal(v::Matrix, name::String; kwargs...)
@@ -31,6 +33,8 @@ function plotHistogram_nodal(v::Matrix, name::String; kwargs...)
     plotHistogram(v[3,:]; xlabel=name*"_3", ylabel="ρ("*name*"_3)", kwargs...)
     plt[:subplot](223)
     plotHistogram(v[4,:]; xlabel=name*"_4", ylabel="ρ("*name*"_4)", kwargs...)
+    savefig("plots/$name.pdf")
+    clf()
 end
 
 function plotHistogram_branch(i::Matrix, name::String; kwargs...)
@@ -45,4 +49,6 @@ function plotHistogram_branch(i::Matrix, name::String; kwargs...)
     plotHistogram(i[4,:]; xlabel=name*"_4", ylabel="ρ("*name*"_4)", kwargs...)
     plt[:subplot](338)
     plotHistogram(i[5,:]; xlabel=name*"_5", ylabel="ρ("*name*"_5)", kwargs...)
+    savefig("plots/$name.pdf")
+    clf()
 end
