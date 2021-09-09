@@ -54,7 +54,7 @@ function addPowerFlow!(opf::Model,sys::Dict,unc::Dict)
     @constraint(opf, pfQ[i=1:N,k=1:K], q[i,k] == sum( (G[i,j]*(f[i,l1]*e[j,l2]-e[i,l1]*f[j,l2]) - B[i,j]*(e[i,l1]*e[j,l2]+f[i,l1]*f[j,l2]) )*unc[:T3].get([l1-1,l2-1,k-1])/unc[:T2].get([k-1,k-1]) for l2 in 1:K, l1 in 1:K, j in 1:N) )
 end
 
-# Branch flows in rectangular coordinates
+# Power flow equaitons in rectangular coordinates
 function addPowerFlowDeterministic!(opf::Model,sys::Dict)
     N = sys[:N]
     e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
@@ -107,7 +107,7 @@ function addPVBusDeterministic!(opf::Model)
     p = 0.84
     v = 1.04^2
     @constraint(opf, PVBus_P, pg[gen] == p) 
-    @constraint(opf, PVBus_V, e[bus]*e[bus]+f[bus]*f[bus] == v) # length of pointer = voltage magnitude
+    @constraint(opf, PVBus_V, e[bus]*e[bus]+f[bus]*f[bus] == v) # complex length = voltage magnitude
 end
 
 # "Set" value of Bus 2 (sampled bus) by defining new equality constraint
@@ -138,13 +138,12 @@ function addInitialCondition!(opf::Model,sys::Dict)
     [ set_start_value(f_,0) for f_ in f ]
 end
 
-# TODO: why no Flat start? try out?
+# Flat start initialization: set all real voltag eparts to 1 and imaginary parts to 0
 function addInitialConditionDeterministic!(opf::Model,sys::Dict)
     e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
     [ set_start_value(pg_, 0) for pg_ in pg ]
     [ set_start_value(qg_, 0) for qg_ in qg ]
-    [ set_start_value(e[1],1) ] # slack bus
-    [ set_start_value(e_,0) for e_ in e[2:end] ]
+    [ set_start_value(e_,1) for e_ in e]
     [ set_start_value(f_,0) for f_ in f ]
 end
 

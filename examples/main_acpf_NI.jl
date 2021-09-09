@@ -4,8 +4,8 @@ include("init_sparse.jl")
 
 ### Non-intrusive PCE ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
-numSamples = 4
-maxDegree = 5
+numSamples = 100
+maxDegree = 4
 
 println("Setting up OPF model.")
 pf = Model(with_optimizer(Ipopt.Optimizer))
