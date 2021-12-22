@@ -10,7 +10,7 @@ maxDegree = deg
 println("Setting up OPF model.")
 pf = Model(with_optimizer(Ipopt.Optimizer))
 addCoreDeterministic!(pf,sys)
-addPVBusDeterministic!(mod)
+addPVBusDeterministic!(pf)
 
 ## Model: Wrapper function for NI-algo.
 # Input:  x - sampled value for active power of PQ bus.
