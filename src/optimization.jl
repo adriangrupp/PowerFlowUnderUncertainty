@@ -101,6 +101,7 @@ function addPVBus!(opf::Model,sys::Dict,unc::Dict)
 end
 
 # "Set" the variable values of the PV bus by constraining them to exact values for p and v
+# Only relevant for PF not OPF
 function addPVBusDeterministic!(opf::Model)
     e, f, pg = opf[:e], opf[:f], opf[:pg]
     bus, gen = 3, 2
@@ -170,7 +171,6 @@ function addCoreDeterministic!(mod::Model, sys::Dict)
     addInitialConditionDeterministic!(mod,sys)
     addPowerFlowDeterministic!(mod, sys)
     addSlackBusDeterministic!(mod)
-    addPVBusDeterministic!(mod)
 end
 
 function addGenerationConstraint!(i::Int,x::Symbol,mod::Model,sys::Dict,unc::Dict)
