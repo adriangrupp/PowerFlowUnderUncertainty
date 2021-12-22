@@ -48,7 +48,7 @@ function setupUncertaintySparse(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
 end
 
 
-# Compute the non-intrusice pce coefficients by least squares regression
+# Compute the non-intrusive pce coefficients by least squares regression
 function computeNonIntrusiveCoefficients(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
     # Evaluate polynomial basis up to maxDegree for all X samples
     Φ = [ evaluate(j, X[i], unc[:opq]) for i = 1:length(X), j = 0:maxDeg ]
