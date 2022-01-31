@@ -1,3 +1,4 @@
+# Julia
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
@@ -5,6 +6,9 @@ deps/deps.jl
 .DS_Store
 .ipynb_checkpoints
 docs/build
+Manifest.toml
+
+# output
 *.pdf
 *.pptx
 *.csv
