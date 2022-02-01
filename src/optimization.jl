@@ -16,8 +16,9 @@ export  addVariables!,
         addConstraintsGenDC!,
         addConstraintsLineFlowDC!,
         buildCostSOC,
-
+        # new stuff for NI-PCE
         addCoreDeterministic!,
+        addPVBusDeterministic!,
         resetPowerFlowConstraint!
 
 function addVariables!(opf::Model,sys::Dict,unc::Dict)
@@ -102,6 +103,7 @@ end
 
 # "Set" the variable values of the PV bus by constraining them to exact values for p and v
 # Only relevant for PF not OPF
+# TODO: hard coded
 function addPVBusDeterministic!(opf::Model)
     e, f, pg = opf[:e], opf[:f], opf[:pg]
     bus, gen = 3, 2
@@ -139,7 +141,7 @@ function addInitialCondition!(opf::Model,sys::Dict)
     [ set_start_value(f_,0) for f_ in f ]
 end
 
-# Flat start initialization: set all real voltag eparts to 1 and imaginary parts to 0
+# Flat start initialization: set all real voltag parts to 1 and imaginary parts to 0
 function addInitialConditionDeterministic!(opf::Model,sys::Dict)
     e, f, pg, qg = opf[:e], opf[:f], opf[:pg], opf[:qg]
     [ set_start_value(pg_, 0) for pg_ in pg ]
