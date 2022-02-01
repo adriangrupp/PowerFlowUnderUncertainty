@@ -34,6 +34,7 @@ function setupUncertaintySparse(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
     ρ(x) = sum( w[i]*ρ_gauss(x,μ[i],σ[i]) for i in 1:length(w) )
     meas = Measure("my_GaussMixture", ρ, (-Inf,Inf), false, Dict(:μ=>μ,:σ=>σ,:w=>w)) # build measure
     opq = OrthoPoly("my_op",deg,meas;Nquad=150,Nrec = 5*deg, discretization=stieltjes) # construct orthogonal polynomial
+    println("Polynomial basis:")
     showbasis(opq,digits=2) # in case you wondered
     println()
     # PCE of demands

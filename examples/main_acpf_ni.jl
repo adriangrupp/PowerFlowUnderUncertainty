@@ -9,6 +9,7 @@ maxDegree = deg
 
 println("Setting up PF model.")
 pf = Model(with_optimizer(Ipopt.Optimizer))
+set_optimizer_attribute(pf, "print_level", 2) # set verbosity of Ipopt output. Default is 5.
 addCoreDeterministic!(pf,sys)
 addPVBusDeterministic!(pf)
 
@@ -60,12 +61,12 @@ println()
 
 ### Plotting ###
 mycolor = "red"
-plotHistogram_bus(pf_samples[:pd], "pd", "/plots"; fignum = 1+10, color = mycolor)
-plotHistogram_bus(pf_samples[:qd], "qd", "/plots"; fignum = 2+10, color = mycolor)
-plotHistogram_bus(pf_samples[:pg], "pg", "/plots"; fignum = 3+10, color = mycolor)
-plotHistogram_bus(pf_samples[:qg], "qg", "/plots"; fignum = 4+10, color = mycolor)
-plotHistogram_nodal(pf_samples[:e], "e", "/plots"; figbum = 5+10, color = mycolor)
-plotHistogram_nodal(pf_samples[:f], "f", "/plots"; figbum = 6+10, color = mycolor)
+plotHistogram_bus(pf_samples[:pd], "pd", "./plots"; fignum = 1+10, color = mycolor)
+plotHistogram_bus(pf_samples[:qd], "qd", "./plots"; fignum = 2+10, color = mycolor)
+plotHistogram_bus(pf_samples[:pg], "pg", "./plots"; fignum = 3+10, color = mycolor)
+plotHistogram_bus(pf_samples[:qg], "qg", "./plots"; fignum = 4+10, color = mycolor)
+plotHistogram_nodal(pf_samples[:e], "e", "./plots"; figbum = 5+10, color = mycolor)
+plotHistogram_nodal(pf_samples[:f], "f", "./plots"; figbum = 6+10, color = mycolor)
 
 
 ### POST PROCESSING ###
