@@ -10,7 +10,7 @@ function createCSV(fileDict,data::Dict)
 	for (key, val) in fileDict
 		for (i, samples) in enumerate(eachrow(data[key]))
 			push!(mynames, val["name"]*"_"*string(i))
-			fname = val["name"]*"_"*string(i)*".csv"
+			fname = "csv/"*val["name"]*"_"*string(i)*".csv"
 			open(fname, "w") do io
 				writedlm(fname, samples, ',')
 			end
@@ -20,7 +20,7 @@ end
 
 function createTikz(fileDict,data,foldername)
 	for (key, val) in fileDict
-		display(val)
+		# display(val)
 		for (i, samples) in enumerate(eachrow(data[key]))
 			fname = val["name"]*"_"*string(i)*".csv"
 			# x, xsub = string(key), string(key)*"_"*string(i)
@@ -28,7 +28,7 @@ function createTikz(fileDict,data,foldername)
 			xlab, ylab = createLabels(key,i)
 			d = createDictForTikz(xlab,ylab,foldername*fname; color=val["color"],width=val["width"],height=val["height"])
 			# *x*"\}_"*string(i)*"\}("*xsub*")"
-			fname = val["name"]*"_"*string(i)*".tex"
+			fname = "tikz/"*val["name"]*"_"*string(i)*".tex"
 			createTikzFigure(fname,d)
 		end
 	end
@@ -36,7 +36,7 @@ end
 
 function createTikz(fileDict,data,foldername,compfoldername)
 	for (key, val) in fileDict
-		display(val)
+		# display(val)
 		for (i, samples) in enumerate(eachrow(data[key]))
 			fname = val["name"]*"_"*string(i)*".csv"
 			xlab, ylab = createLabels(key,i)

@@ -35,6 +35,7 @@ function setupUncertaintySparse(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
     meas = Measure("my_GaussMixture", ρ, (-Inf,Inf), false, Dict(:μ=>μ,:σ=>σ,:w=>w)) # build measure
     opq = OrthoPoly("my_op",deg,meas;Nquad=150,Nrec = 5*deg, discretization=stieltjes) # construct orthogonal polynomial
     showbasis(opq,digits=2) # in case you wondered
+    println()
     # PCE of demands
     pd = zeros(n,deg+1)
     pd[1, [1,2]] = calculateAffinePCE(opq) # random load (bus 2)
@@ -48,7 +49,7 @@ function setupUncertaintySparse(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
 end
 
 
-# Compute the non-intrusive pce coefficients by least squares regression
+# Compute the non-intrusive pce coefficients component-wise by least squares regression
 function computeNonIntrusiveCoefficients(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
     # Evaluate polynomial basis up to maxDegree for all X samples
     Φ = [ evaluate(j, X[i], unc[:opq]) for i = 1:length(X), j = 0:maxDeg ]
