@@ -1,5 +1,5 @@
 export  plotHistogram,
-        plotHistogram_gen,
+        plotHistogram_bus,
         plotHistogram_nodal,
         plotHistogram_branch
 
@@ -13,27 +13,29 @@ function plotHistogram(x::Vector; kwargs...)
     grid(true)
 end
 
-function plotHistogram_gen(pg::Matrix, name::String; kwargs...)
-    haskey(kwargs,:fignum) ? figure(kwargs[:fignum]) : figure()
+function plotHistogram_bus(pg::Matrix, name::String, dir::String; kwargs...)
+    haskey(kwargs, :fignum) ? figure(kwargs[:fignum]) : figure()
     plt[:subplot](221)
-    plotHistogram(pg[1,:]; xlabel=name*"_1", ylabel="ρ("*name*"_1)", kwargs...)
+    plotHistogram(pg[1, :]; xlabel = name * "_1", ylabel = "ρ(" * name * "_1)", kwargs...)
     plt[:subplot](224)
-    plotHistogram(pg[2,:]; xlabel=name*"_2", ylabel="ρ("*name*"_2)", kwargs...)
-    savefig("plots/$name.pdf")
+    plotHistogram(pg[2, :]; xlabel = name * "_2", ylabel = "ρ(" * name * "_2)", kwargs...)
+    println("Plotting... $dir/$name.pdf")
+    savefig("$dir/$name.pdf")
     clf()
 end
 
-function plotHistogram_nodal(v::Matrix, name::String; kwargs...)
-    haskey(kwargs,:fignum) ? figure(kwargs[:fignum]) : figure()
+function plotHistogram_nodal(v::Matrix, name::String, dir::String; kwargs...)
+    haskey(kwargs, :fignum) ? figure(kwargs[:fignum]) : figure()
     plt[:subplot](221)
-    plotHistogram(v[1,:]; xlabel=name*"_1", ylabel="ρ("*name*"_1)", kwargs...)
+    plotHistogram(v[1, :]; xlabel = name * "_1", ylabel = "ρ(" * name * "_1)", kwargs...)
     plt[:subplot](222)
-    plotHistogram(v[2,:]; xlabel=name*"_2", ylabel="ρ("*name*"_2)", kwargs...)
+    plotHistogram(v[2, :]; xlabel = name * "_2", ylabel = "ρ(" * name * "_2)", kwargs...)
     plt[:subplot](224)
-    plotHistogram(v[3,:]; xlabel=name*"_3", ylabel="ρ("*name*"_3)", kwargs...)
+    plotHistogram(v[3, :]; xlabel = name * "_3", ylabel = "ρ(" * name * "_3)", kwargs...)
     plt[:subplot](223)
-    plotHistogram(v[4,:]; xlabel=name*"_4", ylabel="ρ("*name*"_4)", kwargs...)
-    savefig("plots/$name.pdf")
+    plotHistogram(v[4, :]; xlabel = name * "_4", ylabel = "ρ(" * name * "_4)", kwargs...)
+    println("Plotting... $dir/$name.pdf")
+    savefig("$dir/$name.pdf")
     clf()
 end
 
