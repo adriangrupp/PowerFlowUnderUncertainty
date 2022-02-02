@@ -7,12 +7,15 @@ function plotHistogram(x::Vector; kwargs...)
     bins = haskey(kwargs, :bins) ? kwargs[:bins] : 70
     color = haskey(kwargs, :color) ? kwargs[:color] : "blue"
     alpha = haskey(kwargs, :alpha) ? kwargs[:alpha] : 0.5
+    tight_layout() # spacing around labels
+    xticks(rotation=70) # rotate x axis labels
     plt[:hist](x,bins=bins,color=color,alpha=alpha)
     haskey(kwargs,:xlabel) ? xlabel(kwargs[:xlabel]) : nothing
     haskey(kwargs,:ylabel) ? ylabel(kwargs[:ylabel]) : nothing
     grid(true)
 end
 
+# Plots for generators or loads (2 buses)
 function plotHistogram_bus(pg::Matrix, name::String, dir::String; kwargs...)
     haskey(kwargs, :fignum) ? figure(kwargs[:fignum]) : figure()
     plt[:subplot](221)
@@ -24,6 +27,7 @@ function plotHistogram_bus(pg::Matrix, name::String, dir::String; kwargs...)
     clf()
 end
 
+# Plots for all nodes at once (4 buses)
 function plotHistogram_nodal(v::Matrix, name::String, dir::String; kwargs...)
     haskey(kwargs, :fignum) ? figure(kwargs[:fignum]) : figure()
     plt[:subplot](221)
@@ -39,6 +43,7 @@ function plotHistogram_nodal(v::Matrix, name::String, dir::String; kwargs...)
     clf()
 end
 
+# Plots for all branches at once (5 branches)
 function plotHistogram_branch(i::Matrix, name::String; kwargs...)
     haskey(kwargs, :fignum) ? figure(kwargs[:fignum]) : figure()
     plt[:subplot](332)
