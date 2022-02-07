@@ -1,7 +1,8 @@
 export  sampleFromGaussianMixture,
         setupUncertainty,
         setupUncertaintySparse,
-        computeNonIntrusiveCoefficients,
+        computeCoefficientsNI,
+        computeCoefficientsSparse,
         generateSamples
 
 function ρ_gauss(x,μ,σ)
@@ -51,8 +52,8 @@ end
 
 
 # Compute the non-intrusive pce coefficients component-wise by least squares regression
-function computeNonIntrusiveCoefficients(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
-    # Evaluate polynomial basis up to maxDegree for all X samples
+function computeCoefficientsNI(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
+    # Evaluate polynomial basis up to maxDeg for all X samples
     Φ = [ evaluate(j, X[i], unc[:opq]) for i = 1:length(X), j = 0:maxDeg ]
 
     dim = unc[:dim]
@@ -76,6 +77,36 @@ function computeNonIntrusiveCoefficients(X::Vector, busRes::Dict, maxDeg::Int, u
     end
 
     return Dict(:pg=>pg, :qg=>qg, :e=> e, :f=> f)
+end
+
+
+# Compute the non-intrusive pce coefficients component-wise by least squares regression
+function computeCoefficientsSparse(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
+    # Evaluate polynomial basis up to maxDeg for all X samples
+    Φ = [evaluate(j, X[i], unc[:opq]) for i = 1:length(X), j = 0:maxDeg]
+
+    dim = unc[:dim]
+    pg = Array{Float64}(undef, 0, dim)
+    qg = Array{Float64}(undef, 0, dim)
+    e = Array{Float64}(undef, 0, dim)
+    f = Array{Float64}(undef, 0, dim)
+
+    # Perform sparse subspace pursuit regression for all relevant bus variables and get their PCE coefficients
+    K = 2
+    for row in eachrow(busRes[:pg])
+        pg = vcat(pg, subspacePursuit(Φ, row, K)[1]')
+    end
+    for row in eachrow(busRes[:qg])
+        qg = vcat(qg, subspacePursuit(Φ, row, K)[1]')
+    end
+    for row in eachrow(busRes[:e])
+        e = vcat(e, subspacePursuit(Φ, row, K)[1]')
+    end
+    for row in eachrow(busRes[:f])
+        f = vcat(f, subspacePursuit(Φ, row, K)[1]')
+    end
+
+    return Dict(:pg => pg, :qg => qg, :e => e, :f => f)
 end
 
 
