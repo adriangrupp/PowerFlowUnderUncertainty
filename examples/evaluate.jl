@@ -2,6 +2,7 @@ using JLD
 
 ### Evaluation of experiment results ###
 
+# Comparison of PCE coefficients of different methods by ∞-Norm
 function compareCoefficients(file1::String, file2::String)
     f1 = load(file1)
     f2 = load(file2)
@@ -26,5 +27,5 @@ function compareCoefficients(file1::String, file2::String)
     end
 end
 
-
-compareCoefficients("coefficients/SPF_NI.jld", "coefficients/SPF_NI.jld")
+compareCoefficients("coefficients/SPF_intrusive.jld", "coefficients/SPF_sparse.jld")
+# compareCoefficients("coefficients/SPF_intrusive.jld", "coefficients/SPF_NI.jld")

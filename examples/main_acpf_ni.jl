@@ -1,10 +1,10 @@
 using PowerFlowUnderUncertainty, LinearAlgebra, JuMP, Ipopt, DelimitedFiles, JLD
 include("powersystem.jl")
-include("init_sparse.jl")
+include("init_ni.jl")
 
 ### Non-intrusive PCE for stochastic power flow ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
-numSamples = 30
+numSamples = 100
 maxDegree = deg
 
 println("Setting up PF model.")
@@ -37,7 +37,7 @@ busRes = Dict(:pg => Array{Float64}(undef, 2, 0),
 X = sampleFromGaussianMixture(numSamples, μ, σ, w)
 
 # Y = model.(X)
-println("Running $deg deterministic PF calculations (model evalutations)...")
+println("Running $numSamples deterministic PF calculations (model evalutations)...")
 for x in X
     res = model(x)
     busRes[:pg] = hcat(busRes[:pg], res[:pg])
@@ -48,7 +48,7 @@ end
 
 # Perform the actual regression for PCE coefficients on pd, qd, e and f
 println("Compute non-intrusive PCE coefficients...\n")
-pce = computeNonIntrusiveCoefficients(X, busRes, maxDegree, unc)
+pce = computeCoefficientsNI(X, busRes, maxDegree, unc)
 
 # Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, pf, sys, unc)
@@ -63,7 +63,9 @@ println()
 
 
 ### Store PCE coefficients ###
-save("coefficients/SPF_NI.jld", "pf_state", pf_state)
+f_coeff = "coefficients/SPF_NI.jld"
+save(f_coeff, "pf_state", pf_state)
+println("PCE coefficients data saved to $f_coeff.\n")
 
 
 ### Plotting ###
