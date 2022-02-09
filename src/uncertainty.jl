@@ -1,6 +1,7 @@
 export  sampleFromGaussianMixture,
         setupUncertainty,
         setupUncertaintySparse,
+        setupUncertaintyMulti,
         computeCoefficientsNI,
         computeCoefficientsSparse,
         generateSamples
@@ -50,17 +51,41 @@ function setupUncertaintySparse(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
                 :qd=>qd)
 end
 
+# Setup for multiple uncertainties - for now hard coded for buses and same uncertainty (Gaussian mixture)
+function setupUncertaintyMulti(μ::Vector, σ::Vector, w::Vector, Nd::Int, deg::Int, numUnc::Int)
+    @assert length(μ) == length(σ) == length(w) "inconsistent lengths of μ and σ"
+    ρ(x) = sum(w[i] * ρ_gauss(x, μ[i], σ[i]) for i in 1:length(w))
+    meas = Measure("GaussMixture", ρ, (-Inf, Inf), false, Dict(:μ => μ, :σ => σ, :w => w)) # build measure
+    opq = OrthoPoly("GaussMix_op", deg, meas; Nquad = 150, Nrec = 5 * deg, discretization = stieltjes) # construct orthogonal polynomial
+    mop = MultiOrthoPoly([opq for i in 1:numUnc], deg)
+    println("Polynomial basis:")
+    show(mop) # in case you wondered
+    println()
+    # PCE of demands. Compute affine coefficients for each univariate unvertainty dimension and combine them
+    pd1 = assign2multi(calculateAffinePCE(mop.uni[1]), 1, mop.ind) # random load (bus 2)
+    pd2 = assign2multi(calculateAffinePCE(mop.uni[2]), 2, mop.ind) # random load (bus 4)
+    pd = vcat(pd1', pd2')
+    qd = 0.85 * copy(pd)
+
+    return Dict(:opq => mop,
+        :dim => mop.dim, # TODO
+        :pd => pd,
+        :qd => qd)
+end
+
 
 # Compute the non-intrusive pce coefficients component-wise by least squares regression
-function computeCoefficientsNI(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
-    # Evaluate polynomial basis up to maxDeg for all X samples
-    Φ = [ evaluate(j, X[i], unc[:opq]) for i = 1:length(X), j = 0:maxDeg ]
-
+function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
+    # Evaluate polynomial basis for all X samples. Multiply dispatched for uni and multivar
+    Φ = evaluate(X, unc[:opq])
+    # transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
+    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing 
+    
     dim = unc[:dim]
     pg = Array{Float64}(undef, 0, dim)
-	qg = Array{Float64}(undef, 0, dim)
-	e =  Array{Float64}(undef, 0, dim)
-	f =  Array{Float64}(undef, 0, dim)
+    qg = Array{Float64}(undef, 0, dim)
+    e = Array{Float64}(undef, 0, dim)
+    f = Array{Float64}(undef, 0, dim)
 
     # Perform least squares regression for all relevant bus variables and get their pce coefficients
     for row in eachrow(busRes[:pg])
@@ -76,7 +101,7 @@ function computeCoefficientsNI(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
         f = vcat(f, leastSquares(Φ, row)')
     end
 
-    return Dict(:pg=>pg, :qg=>qg, :e=> e, :f=> f)
+    return Dict(:pg => pg, :qg => qg, :e => e, :f => f)
 end
 
 
@@ -121,6 +146,8 @@ end
 
 function generateSamples(x,d_in::Dict,sys::Dict,unc::Dict)
     Φ = evaluate(x,unc[:opq])
+    # transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
+    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing 
     d_out = Dict{Symbol,Matrix{Float64}}()
     for (key, value) in d_in
         d_out[key] = (Φ*value')'
