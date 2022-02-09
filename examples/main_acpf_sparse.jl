@@ -1,6 +1,7 @@
 using PowerFlowUnderUncertainty, LinearAlgebra, JuMP, Ipopt, DelimitedFiles, JLD
 include("powersystem.jl")
 include("init_ni.jl")
+initSingleUncertainty()
 
 ### Spasrse PCE for stochastic power flow ###
 ## Take samples of power values, compute PF, perform sparse regression for all needed variables.
@@ -29,7 +30,7 @@ function model(x)
         :f => value.(pf[:f]))
 end
 
-## Create ED an run deterministic model evaluations
+## Create ED and run deterministic model evaluations
 busRes = Dict(:pg => Array{Float64}(undef, 2, 0),
     :qg => Array{Float64}(undef, 2, 0),
     :e => Array{Float64}(undef, 4, 0),

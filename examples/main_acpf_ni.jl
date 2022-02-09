@@ -1,10 +1,11 @@
 using PowerFlowUnderUncertainty, LinearAlgebra, JuMP, Ipopt, DelimitedFiles, JLD
 include("powersystem.jl")
 include("init_ni.jl")
+initSingleUncertainty()
 
 ### Non-intrusive PCE for stochastic power flow ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
-numSamples = 100
+numSamples = 20
 maxDegree = deg
 
 println("Setting up PF model.")
@@ -48,7 +49,7 @@ end
 
 # Perform the actual regression for PCE coefficients on pd, qd, e and f
 println("Compute non-intrusive PCE coefficients...\n")
-pce = computeCoefficientsNI(X, busRes, maxDegree, unc)
+pce = computeCoefficientsNI(X, busRes, unc)
 
 # Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, pf, sys, unc)
@@ -70,12 +71,12 @@ println("PCE coefficients data saved to $f_coeff.\n")
 
 ### Plotting ###
 mycolor = "red"
-plotHistogram_bus(pf_samples[:pd], "pd", "./plots"; fignum = 1 + 10, color = mycolor)
-plotHistogram_bus(pf_samples[:qd], "qd", "./plots"; fignum = 2 + 10, color = mycolor)
-plotHistogram_bus(pf_samples[:pg], "pg", "./plots"; fignum = 3 + 10, color = mycolor)
-plotHistogram_bus(pf_samples[:qg], "qg", "./plots"; fignum = 4 + 10, color = mycolor)
-plotHistogram_nodal(pf_samples[:e], "e", "./plots"; figbum = 5 + 10, color = mycolor)
-plotHistogram_nodal(pf_samples[:f], "f", "./plots"; figbum = 6 + 10, color = mycolor)
+plotHistogram_bus(pf_samples[:pd], "pd", "./plots/non-intrusive"; fignum = 1 + 10, color = mycolor)
+plotHistogram_bus(pf_samples[:qd], "qd", "./plots/non-intrusive"; fignum = 2 + 10, color = mycolor)
+plotHistogram_bus(pf_samples[:pg], "pg", "./plots/non-intrusive"; fignum = 3 + 10, color = mycolor)
+plotHistogram_bus(pf_samples[:qg], "qg", "./plots/non-intrusive"; fignum = 4 + 10, color = mycolor)
+plotHistogram_nodal(pf_samples[:e], "e", "./plots/non-intrusive"; figbum = 5 + 10, color = mycolor)
+plotHistogram_nodal(pf_samples[:f], "f", "./plots/non-intrusive"; figbum = 6 + 10, color = mycolor)
 
 
 ### POST PROCESSING ###
