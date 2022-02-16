@@ -4,7 +4,8 @@ export  sampleFromGaussianMixture,
         setupUncertaintyMulti,
         computeCoefficientsNI,
         computeCoefficientsSparse,
-        generateSamples
+        generateSamples,
+        computePolarValues!
 
 function ρ_gauss(x,μ,σ)
     1 / sqrt(2*π*σ^2) * exp(-(x - μ)^2 / (2σ^2))
@@ -152,6 +153,16 @@ function generateSamples(x,d_in::Dict,sys::Dict,unc::Dict)
     for (key, value) in d_in
         d_out[key] = (Φ*value')'
     end
+
+    computePolarValues!(d_out)
+
+    X = Matrix{Float64}(undef,size(x,1),1)
+    X[:] = [ sum( p[i]^2*sys[:costquad][i] + p[i]*sys[:costlin][i] for i in 1:sys[:Ng] ) for p in eachcol(d_out[:pg]) ]
+    d_out[:cost] = X
+    return d_out
+end
+
+function computePolarValues!(d_out::Dict)
     if haskey(d_out,:i_re) && haskey(d_out,:i_im)
         i = d_out[:i_re] + im * d_out[:i_im]
         d_out[:i] = abs.(i)
@@ -165,8 +176,4 @@ function generateSamples(x,d_in::Dict,sys::Dict,unc::Dict)
         d_out[:v] = abs.(v)
         d_out[:θ] = angle.(v)
     end
-    X = Matrix{Float64}(undef,size(x,1),1)
-    X[:] = [ sum( p[i]^2*sys[:costquad][i] + p[i]*sys[:costlin][i] for i in 1:sys[:Ng] ) for p in eachcol(d_out[:pg]) ]
-    d_out[:cost] = X
-    return d_out
 end
