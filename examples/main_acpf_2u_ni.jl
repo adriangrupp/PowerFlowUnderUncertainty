@@ -2,8 +2,9 @@ using PowerFlowUnderUncertainty, LinearAlgebra, JuMP, Ipopt, DelimitedFiles, JLD
 include("powersystem.jl")
 include("init_ni.jl")
 
-### Non-intrusive PCE for stochastic power flow ###
+### Non-intrusive PCE for stochastic power flow with 2 uncertainties ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
+
 numSamples = 20
 maxDegree = deg
 numUnc = 2
@@ -25,7 +26,7 @@ function model(x::AbstractVector)
     sys[:Q][1] = q1
     sys[:P][2] = p2
     sys[:Q][2] = q2
-    resetPowerFlowConstraint!(pf, sys)
+    resetPowerFlowConstraint!(pf, sys) # initialize pf model with new sample
     optimize!(pf) # actual model function
 
     return Dict(:pg => value.(pf[:pg]),

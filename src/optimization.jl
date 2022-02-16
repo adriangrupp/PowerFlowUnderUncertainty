@@ -126,7 +126,7 @@ function addPVBusDeterministic!(opf::Model)
     p = 0.84
     v = 1.04^2
     @constraint(opf, PVBus_P, pg[gen] == p) 
-    @constraint(opf, PVBus_V, e[bus]*e[bus]+f[bus]*f[bus] == v) # complex length = voltage magnitude
+    @constraint(opf, PVBus_V, e[bus]*e[bus]+f[bus]*f[bus] == v) # complex length = voltage magnitude TODO WHY?
 end
 
 # Flat start initialization: set all real voltag parts to 1 and imaginary parts to 0
