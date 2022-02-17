@@ -183,12 +183,13 @@ end
 function computeMoments(d_in::Dict, unc::Dict)
     moments = Dict{Symbol,Matrix{Float64}}()
     for (key, val) in d_in
-        local moms = Array{Float64}(undef, 0, 2)
-        for row in eachrow(val)
-            mean, std = PolyChaos.mean(row, unc[:opq]), PolyChaos.std(row, unc[:opq])
-            moms = vcat(moms, [mean std])
+        let moms = Array{Float64}(undef, 0, 2)
+            for row in eachrow(val)
+                mean, std = PolyChaos.mean(row, unc[:opq]), PolyChaos.std(row, unc[:opq])
+                moms = vcat(moms, [mean std])
+            end
+            moments[key] = moms
         end
-        moments[key] = moms
     end
     return moments
 end
