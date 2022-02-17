@@ -82,10 +82,10 @@ println()
 ### Compute and store first three Moments ###
 moments = Dict{Symbol,Matrix{Float64}}()
 for (key, samples) in pf_samples
-    let moms = Array{Float64}(undef, 0, 3)
+    let moms = Array{Float64}(undef, 0, 2)
         for row in eachrow(samples)
-            mean_mc, std_mc, skew_mc = mean(row), std(row), skewness(row)
-            moms = vcat(moms, [mean_mc std_mc skew_mc])
+            mean_mc, std_mc = mean(row), std(row) #, skewness(row)
+            moms = vcat(moms, [mean_mc std_mc])
         end
         moments[key] = moms
     end
