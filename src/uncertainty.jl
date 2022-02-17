@@ -5,7 +5,8 @@ export  sampleFromGaussianMixture,
         computeCoefficientsNI,
         computeCoefficientsSparse,
         generateSamples,
-        computePolarValues!
+        computePolarValues!,
+        computeMoments
 
 function ρ_gauss(x,μ,σ)
     1 / sqrt(2*π*σ^2) * exp(-(x - μ)^2 / (2σ^2))
@@ -176,4 +177,18 @@ function computePolarValues!(d_out::Dict)
         d_out[:v] = abs.(v)
         d_out[:θ] = angle.(v)
     end
+end
+
+# Compute the moments from the PCE coefficients for each parameter and bus
+function computeMoments(d_in::Dict, unc::Dict)
+    moments = Dict{Symbol,Matrix{Float64}}()
+    for (key, val) in d_in
+        local moms = Array{Float64}(undef, 0, 2)
+        for row in eachrow(val)
+            mean, std = PolyChaos.mean(row, unc[:opq]), PolyChaos.std(row, unc[:opq])
+            moms = vcat(moms, [mean std])
+        end
+        moments[key] = moms
+    end
+    return moments
 end

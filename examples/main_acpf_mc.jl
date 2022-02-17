@@ -1,10 +1,11 @@
-using PowerFlowUnderUncertainty, LinearAlgebra, JuMP, Ipopt, DelimitedFiles, JLD
+using PowerFlowUnderUncertainty, LinearAlgebra, JuMP, Ipopt, DelimitedFiles, JLD, Distributions
 using Random
 Random.seed!(1234)
 
 include("powersystem.jl")
 
-numSamples = 10000
+numSamples = 100
+numUnc = 2
 sys = setupPowerSystem()
 μ, σ, w = [2.1, 3.2], [0.3, 0.4], [0.3, 0.7]
 @assert sum(w) == 1 "The weights do not sum to one."
@@ -40,19 +41,18 @@ function model(x::AbstractVector)
     optimize!(pf) # actual model function
 
     d = Dict(:pg => value.(pf[:pg]),
-    :qg => value.(pf[:qg]),
-    :e => value.(pf[:e]),
-    :f => value.(pf[:f]))
-    
+        :qg => value.(pf[:qg]),
+        :e => value.(pf[:e]),
+        :f => value.(pf[:f]))
+
     currents = computeLineCurrentsDeterministic(pf, sys)
 
-    merge!(d,currents)
+    merge!(d, currents)
 end
 
 # Generate samples for load buses
 samples = [sampleFromGaussianMixture(numSamples, μ, σ, w) for i in 1:numUnc]
 X = hcat(samples...)
-
 pf_samples[:pd] = X'
 pf_samples[:qd] = X' * 0.85
 
@@ -71,13 +71,30 @@ for x in eachrow(X)
     global i += 1
 end
 
-
-# Additional values of current and voltage
+# Additional polar values of current and voltage
 computePolarValues!(pf_samples)
 println("\n Monter Calro model evaluations for $numSamples samples:")
 display(pf_samples)
 println()
 
+
+
+### Compute and store first three Moments ###
+moments = Dict{Symbol,Matrix{Float64}}()
+for (key, samples) in pf_samples
+    let moms = Array{Float64}(undef, 0, 3)
+        for row in eachrow(samples)
+            mean_mc, std_mc, skew_mc = mean(row), std(row), skewness(row)
+            moms = vcat(moms, [mean_mc std_mc skew_mc])
+        end
+        moments[key] = moms
+    end
+end
+
+# Store moments
+f_moms = "coefficients/MC_moments.jld"
+save(f_moms, "moments", moments)
+println("Monte Carlo moments data saved to $f_coeff.\n")
 
 
 
@@ -90,6 +107,7 @@ plotHistogram_bus(pf_samples[:pg], "pg", "./plots/2unc_Monte_Carlo"; fignum = 3 
 plotHistogram_bus(pf_samples[:qg], "qg", "./plots/2unc_Monte_Carlo"; fignum = 4 + 10, color = buscolor)
 plotHistogram_nodal(pf_samples[:e], "e", "./plots/2unc_Monte_Carlo"; figbum = 5 + 10, color = nodecolor)
 plotHistogram_nodal(pf_samples[:f], "f", "./plots/2unc_Monte_Carlo"; figbum = 6 + 10, color = nodecolor)
+
 
 
 ### POST PROCESSING ###

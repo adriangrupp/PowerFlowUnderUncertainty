@@ -74,6 +74,13 @@ f_coeff = "coefficients/SPF_NI_2unc.jld"
 save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
+# Compute and store moments from PCE coefficients
+moments = computeMoments(pf_state, unc)
+f_moms = "coefficients/SPF_NI_2un_momentsc.jld"
+save(f_moms, "moments", moments)
+println("PCE moments data saved to $f_mom.\n")
+
+
 
 ### Plotting ###
 buscolor = "red"
