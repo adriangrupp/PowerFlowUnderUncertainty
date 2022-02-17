@@ -22,7 +22,7 @@ function plotHistogram_bus(pg::Matrix, name::String, dir::String; kwargs...)
     plotHistogram(pg[1, :]; xlabel = name * "_1", ylabel = "ρ(" * name * "_1)", kwargs...)
     plt[:subplot](224)
     plotHistogram(pg[2, :]; xlabel = name * "_2", ylabel = "ρ(" * name * "_2)", kwargs...)
-    println("Plotting... $dir/$name.pdf")
+    println("Plotting: $dir/$name.pdf")
     savefig("$dir/$name.pdf")
     clf()
 end
