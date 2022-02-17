@@ -5,7 +5,7 @@ include("init_ni.jl")
 ### Non-intrusive PCE for stochastic power flow with 2 uncertainties ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
 
-numSamples = 20
+numSamples = 30
 maxDegree = deg
 numUnc = 2
 initMultiUncertainty(numUnc)

@@ -4,7 +4,7 @@ Random.seed!(1234)
 
 include("powersystem.jl")
 
-numSamples = 100
+numSamples = 10000
 numUnc = 2
 sys = setupPowerSystem()
 μ, σ, w = [2.1, 3.2], [0.3, 0.4], [0.3, 0.7]
@@ -60,6 +60,9 @@ pf_samples[:qd] = X' * 0.85
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
 i = 1
 for x in eachrow(X)
+    i % 500 == 0 ? println("iteration $i") : nothing
+    global i += 1
+    
     res = model(x)
     pf_samples[:pg] = hcat(pf_samples[:pg], res[:pg])
     pf_samples[:qg] = hcat(pf_samples[:qg], res[:qg])
@@ -67,8 +70,6 @@ for x in eachrow(X)
     pf_samples[:f] = hcat(pf_samples[:f], res[:f])
     pf_samples[:i_re] = hcat(pf_samples[:i_re], res[:i_re])
     pf_samples[:i_im] = hcat(pf_samples[:i_im], res[:i_im])
-    i % 500 == 0 ? println("iteration $i") : nothing
-    global i += 1
 end
 
 # Additional polar values of current and voltage
