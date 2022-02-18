@@ -56,7 +56,7 @@ end
 
 # Perform the actual regression for PCE coefficients on pd, qd, e and f
 println("Compute sparse PCE coefficients with subspace pursuit (SP)...\n")
-pce = computeCoefficientsSparse(X, busRes, maxDegree, unc)
+pce = computeCoefficientsSparse(X, busRes, unc; K=5)
 
 # Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, pf, sys, unc)

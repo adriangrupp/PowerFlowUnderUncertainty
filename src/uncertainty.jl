@@ -107,8 +107,8 @@ function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
 end
 
 
-# Compute the non-intrusive pce coefficients component-wise by least squares regression
-function computeCoefficientsSparse(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
+# Compute the non-intrusive pce coefficients component-wise by sparse regresseion (subspace pursuit)
+function computeCoefficientsSparse(X::VecOrMat, busRes::Dict, unc::Dict; K::Int=2)
     # Evaluate polynomial basis for all X samples. Multiply dispatched for uni and multivar
     Φ = evaluate(X, unc[:opq])
     # transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
@@ -121,7 +121,6 @@ function computeCoefficientsSparse(X::Vector, busRes::Dict, maxDeg::Int, unc::Di
     f = Array{Float64}(undef, 0, dim)
 
     # Perform sparse subspace pursuit regression for all relevant bus variables and get their PCE coefficients
-    K = 2
     for row in eachrow(busRes[:pg])
         pg = vcat(pg, subspacePursuit(Φ, row, K)[1]')
     end
