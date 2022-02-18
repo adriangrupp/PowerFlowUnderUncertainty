@@ -109,8 +109,10 @@ end
 
 # Compute the non-intrusive pce coefficients component-wise by least squares regression
 function computeCoefficientsSparse(X::Vector, busRes::Dict, maxDeg::Int, unc::Dict)
-    # Evaluate polynomial basis up to maxDeg for all X samples
-    Φ = [evaluate(j, X[i], unc[:opq]) for i = 1:length(X), j = 0:maxDeg]
+    # Evaluate polynomial basis for all X samples. Multiply dispatched for uni and multivar
+    Φ = evaluate(X, unc[:opq])
+    # transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
+    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
 
     dim = unc[:dim]
     pg = Array{Float64}(undef, 0, dim)
