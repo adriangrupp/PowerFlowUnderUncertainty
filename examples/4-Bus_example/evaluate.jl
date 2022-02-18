@@ -27,12 +27,13 @@ function compareCoefficients(file1::String, file2::String)
     end
 end
 
+
 # Compute PCE moments and compare to Monte Carlo moments
 function compareToMCMoments(mcFile::String, pceFile::String)
     f1 = load(mcFile)
     f2 = load(pceFile)
 
-    println("Comparing moments between $(basename(mcFile)) and $(basename(pceFile))")
+    println("Comparing moments between $(basename(mcFile)) and $(basename(pceFile)):\n")
 
     momentsMC = f1["moments"]
     momentsPCE = f2["moments"]
@@ -41,10 +42,10 @@ function compareToMCMoments(mcFile::String, pceFile::String)
         if haskey(momentsPCE, key)
             mat1, mat2 = val, momentsPCE[key] # coefficients are stored as matrices
 
-            diff = round.(mat1 - mat2, digits = 4) # difference between all entries
+            diff = round.(mat1 - mat2, digits = 5) # difference between all entries
             # compare diff rowwise, i.e. for each bus
             for (i, row) in enumerate(eachrow(diff))
-                println("($key, $i)  \t Error mean:\t", diff[1], "\t Error std:\t", diff[2])
+                println("($key, $i)  \t Error mean:\t", diff[1], "      \tError std:\t", diff[2])
             end
         end
     end
@@ -55,5 +56,6 @@ end
 # compareCoefficients("coefficients/SPF_intrusive.jld", "coefficients/SPF_sparse.jld")
 # compareCoefficients("coefficients/SPF_intrusive.jld", "coefficients/SPF_NI.jld")
 
-# Compare Moments
-# compareToMCMoments("coefficients/MC_moments.jld", "coefficients/SPF_NI_2u_moments.jld")
+# Compare Moments with MC
+compareToMCMoments("coefficients/MC_moments.jld", "coefficients/SPF_NI_2unc_moments.jld")
+compareToMCMoments("coefficients/MC_moments.jld", "coefficients/SPF_sparse_2unc_moments.jld")

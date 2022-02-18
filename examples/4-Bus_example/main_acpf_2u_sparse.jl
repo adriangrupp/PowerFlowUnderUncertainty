@@ -6,7 +6,8 @@ include("powersystem.jl")
 include("init_ni.jl")
 
 
-numSamples = 30
+postProcessing = false
+numSamples = 10
 maxDegree = deg
 numUnc = 2
 initMultiUncertainty(numUnc)
@@ -85,59 +86,61 @@ println("PCE moments data saved to $f_moms.\n")
 
 
 
-### Plotting ###
-buscolor = "red"
-nodecolor = "blue"
-plotHistogram_bus(pf_samples[:pd], "pd", "./plots/sparse_2unc"; fignum = 1 + 10, color = buscolor)
-plotHistogram_bus(pf_samples[:qd], "qd", "./plots/sparse_2unc"; fignum = 2 + 10, color = buscolor)
-plotHistogram_bus(pf_samples[:pg], "pg", "./plots/sparse_2unc"; fignum = 3 + 10, color = buscolor)
-plotHistogram_bus(pf_samples[:qg], "qg", "./plots/sparse_2unc"; fignum = 4 + 10, color = buscolor)
-plotHistogram_nodal(pf_samples[:e], "e", "./plots/sparse_2unc"; figbum = 5 + 10, color = nodecolor)
-plotHistogram_nodal(pf_samples[:f], "f", "./plots/sparse_2unc"; figbum = 6 + 10, color = nodecolor)
-
-
 ### POST PROCESSING ###
-width, height, color = "3.9cm", "2.75cm", "black!40"
-files_to_save = Dict(:v => Dict("name" => "voltage_magnitude",
-        "color" => color,
-        "width" => "2.95cm",
-        "height" => height),
-    :θ => Dict("name" => "voltage_angle",
-        "color" => color,
-        "width" => "2.95cm",
-        "height" => height),
-    :pg => Dict("name" => "active_power",
-        "color" => color,
-        "width" => width,
-        "height" => height),
-    :qg => Dict("name" => "reactive_power",
-        "color" => color,
-        "width" => width,
-        "height" => height),
-    :pd => Dict("name" => "active_power_demand",
-        "color" => color,
-        "width" => "4.7cm",
-        "height" => height),
-    :qd => Dict("name" => "reactive_power_demand",
-        "color" => color,
-        "width" => "4.7cm",
-        "height" => height),
-    :i => Dict("name" => "current_magnitude",
-        "color" => color,
-        "width" => width,
-        "height" => height))
-#  :pl_t => Dict("name"=>"active_power_to",
-# 			"color"=>color,
-# 			"width"=>width,
-# 			"height"=>height),
-#  :ql_t => Dict("name"=>"reactive_power_to",
-# 			"color"=>color,
-# 			"width"=>width,
-# 			"height"=>height)
+if postProcessing
+    ### Plotting ###
+    buscolor = "red"
+    nodecolor = "blue"
+    plotHistogram_bus(pf_samples[:pd], "pd", "./plots/sparse_2unc"; fignum = 1 + 10, color = buscolor)
+    plotHistogram_bus(pf_samples[:qd], "qd", "./plots/sparse_2unc"; fignum = 2 + 10, color = buscolor)
+    plotHistogram_bus(pf_samples[:pg], "pg", "./plots/sparse_2unc"; fignum = 3 + 10, color = buscolor)
+    plotHistogram_bus(pf_samples[:qg], "qg", "./plots/sparse_2unc"; fignum = 4 + 10, color = buscolor)
+    plotHistogram_nodal(pf_samples[:e], "e", "./plots/sparse_2unc"; figbum = 5 + 10, color = nodecolor)
+    plotHistogram_nodal(pf_samples[:f], "f", "./plots/sparse_2unc"; figbum = 6 + 10, color = nodecolor)
 
-# Store bus and branch data as csv and tikz files
-println()
-createCSV(files_to_save, pf_samples)
-println("CSV data saved to /csv.")
-createTikz(files_to_save, pf_samples, "../csv/")
-println("Tikz files saved to /tikz.")
+    
+    width, height, color = "3.9cm", "2.75cm", "black!40"
+    files_to_save = Dict(:v => Dict("name" => "voltage_magnitude",
+            "color" => color,
+            "width" => "2.95cm",
+            "height" => height),
+        :θ => Dict("name" => "voltage_angle",
+            "color" => color,
+            "width" => "2.95cm",
+            "height" => height),
+        :pg => Dict("name" => "active_power",
+            "color" => color,
+            "width" => width,
+            "height" => height),
+        :qg => Dict("name" => "reactive_power",
+            "color" => color,
+            "width" => width,
+            "height" => height),
+        :pd => Dict("name" => "active_power_demand",
+            "color" => color,
+            "width" => "4.7cm",
+            "height" => height),
+        :qd => Dict("name" => "reactive_power_demand",
+            "color" => color,
+            "width" => "4.7cm",
+            "height" => height),
+        :i => Dict("name" => "current_magnitude",
+            "color" => color,
+            "width" => width,
+            "height" => height))
+    #  :pl_t => Dict("name"=>"active_power_to",
+    # 			"color"=>color,
+    # 			"width"=>width,
+    # 			"height"=>height),
+    #  :ql_t => Dict("name"=>"reactive_power_to",
+    # 			"color"=>color,
+    # 			"width"=>width,
+    # 			"height"=>height)
+
+    # Store bus and branch data as csv and tikz files
+    println()
+    createCSV(files_to_save, pf_samples)
+    println("CSV data saved to /csv.")
+    createTikz(files_to_save, pf_samples, "../csv/")
+    println("Tikz files saved to /tikz.")
+end
