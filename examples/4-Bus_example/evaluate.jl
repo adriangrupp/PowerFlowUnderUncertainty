@@ -41,7 +41,7 @@ function compareToMCMoments(mcFile::String, pceFile::String)
         if haskey(momentsPCE, key)
             mat1, mat2 = val, momentsPCE[key] # coefficients are stored as matrices
 
-            diff = round.(mat1 - mat2, digits=4) # difference between all entries
+            diff = round.(mat1 - mat2, digits = 4) # difference between all entries
             # compare diff rowwise, i.e. for each bus
             for (i, row) in enumerate(eachrow(diff))
                 println("($key, $i)  \t Error mean:\t", diff[1], "\t Error std:\t", diff[2])
@@ -56,4 +56,4 @@ end
 # compareCoefficients("coefficients/SPF_intrusive.jld", "coefficients/SPF_NI.jld")
 
 # Compare Moments
-compareToMCMoments("coefficients/MC_moments.jld", "coefficients/SPF_NI_2u_moments.jld")
+# compareToMCMoments("coefficients/MC_moments.jld", "coefficients/SPF_NI_2u_moments.jld")

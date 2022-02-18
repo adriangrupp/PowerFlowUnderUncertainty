@@ -78,7 +78,7 @@ println("PCE coefficients data saved to $f_coeff.\n")
 
 # Compute and store moments from PCE coefficients
 moments = computeMoments(pf_state, unc)
-f_moms = "coefficients/SPF_NI_2u_moments.jld"
+f_moms = "coefficients/SPF_NI_2unc_moments.jld"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 
