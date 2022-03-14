@@ -1,8 +1,26 @@
-export getPQResult,
-    getVoltageResult
+export getLoadIndices,
+getCost,
+getPQResult,
+getVoltageResult
+
 
 """
-Return pg and qg for generator buses
+Get indices for all load buses
+"""
+function getLoadIndices(network_data)
+    idx = [el[2]["load_bus"] for el in network_data["load"]]
+    return sort(idx)
+end
+"""
+Get quadradic and linear generator cost
+"""
+function getCost(network_data)
+    costquad = [el[2]["cost"][1] for el in network_data["gen"]]
+    costlin  = [el[2]["cost"][2] for el in network_data["gen"]]
+    return costquad, costlin
+end
+"""
+Get pg and qg for generator buses
 """
 function getPQResult(pf)
     gen = sort(collect(pf["solution"]["gen"]), by = x -> parse(Int, x[1])) # sort solution/gen entries by IDs which are converted from string to Int
@@ -11,7 +29,7 @@ function getPQResult(pf)
     return pg, qg
 end
 """
-Return v_re and v_im for generator buses
+Get v_re and v_im for generator buses
 """
 function getVoltageResult(pf)
     bus = sort(collect(pf["solution"]["bus"]), by = x -> parse(Int, x[1]))
