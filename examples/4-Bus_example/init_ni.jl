@@ -17,5 +17,5 @@ end
 function initMultiUncertainty(numUnc::Int)
     samp = [sampleFromGaussianMixture(5000, μ, σ, w) for i in 1:numUnc]
     global ξ = hcat(samp...)
-    global unc = setupUncertaintyMulti(μ, σ, w, sys[:Nd], deg, numUnc)
+    global unc = setupUncertaintyMulti(μ, σ, w, deg, numUnc)
 end

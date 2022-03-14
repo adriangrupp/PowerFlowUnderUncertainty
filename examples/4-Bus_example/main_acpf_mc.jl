@@ -13,19 +13,26 @@ sys = setupPowerSystem()
 ### Monte Carlo reference for stochastic power flow with 2 uncertainties ###
 ## Take samples of power values, compute PF, compute moments.
 
+# Initialize solver
 println("Setting up PF model.")
 pf = Model(with_optimizer(Ipopt.Optimizer))
 set_optimizer_attribute(pf, "print_level", 2) # set verbosity of Ipopt output. Default is 5.
 addCoreDeterministic!(pf, sys)
 addPVBusDeterministic!(pf)
 
-### Perform full MC simulation ##
+# Dict for results on bus and branch parameters
 pf_samples = Dict(:pg => Array{Float64}(undef, 2, 0),
     :qg => Array{Float64}(undef, 2, 0),
     :e => Array{Float64}(undef, 4, 0),
     :f => Array{Float64}(undef, 4, 0),
     :i_re => Array{Float64}(undef, 5, 0),
     :i_im => Array{Float64}(undef, 5, 0))
+    
+# Generate samples for load buses
+samples = [sampleFromGaussianMixture(numSamples, μ, σ, w) for i in 1:numUnc]
+X = hcat(samples...)
+pf_samples[:pd] = X'
+pf_samples[:qd] = X' * 0.85
 
 ## Model
 # Input:  x - vector of sampled values for active power of PQ buses.
@@ -38,7 +45,7 @@ function model(x::AbstractVector)
     sys[:P][2] = p2
     sys[:Q][2] = q2
     resetPowerFlowConstraint!(pf, sys) # initialize pf model with new sample
-    optimize!(pf) # actual model function
+    optimize!(pf) # actual model evaluation
 
     d = Dict(:pg => value.(pf[:pg]),
         :qg => value.(pf[:qg]),
@@ -49,12 +56,6 @@ function model(x::AbstractVector)
 
     merge!(d, currents)
 end
-
-# Generate samples for load buses
-samples = [sampleFromGaussianMixture(numSamples, μ, σ, w) for i in 1:numUnc]
-X = hcat(samples...)
-pf_samples[:pd] = X'
-pf_samples[:qd] = X' * 0.85
 
 # Evaluate PF: Y = model.(X)
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
@@ -74,13 +75,14 @@ end
 
 # Additional polar values of current and voltage
 computePolarValues!(pf_samples)
+
 println("\n Monter Calro model evaluations for $numSamples samples:")
 display(pf_samples)
 println()
 
 
 
-### Compute and store first three Moments ###
+### Compute and store first two moments ###
 moments = Dict{Symbol,Matrix{Float64}}()
 for (key, samples) in pf_samples
     let moms = Array{Float64}(undef, 0, 2)
@@ -95,7 +97,7 @@ end
 # Store moments
 f_moms = "coefficients/MC_moments.jld"
 save(f_moms, "moments", moments)
-println("Monte Carlo moments data saved to $f_coeff.\n")
+println("Monte Carlo moments data saved to $f_moms.\n")
 
 
 
