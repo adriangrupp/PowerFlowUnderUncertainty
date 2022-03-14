@@ -1,7 +1,7 @@
 module PowerFlowUnderUncertainty
 
-using PolyChaos, PowerModels, JuMP, PyPlot, DelimitedFiles
-using sparsePolyChaos
+using PowerModels, LinearAlgebra, JuMP, PyPlot, DelimitedFiles
+using PolyChaos, sparsePolyChaos
 
 include("uncertainty.jl")
 include("optimization.jl")
