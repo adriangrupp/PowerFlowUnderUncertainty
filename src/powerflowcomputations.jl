@@ -17,12 +17,12 @@ function getGridState(mod::Model, sys::Dict, unc::Dict)
 end
 
 # PCE coefficients for all network parameters (non-intrusive)
-function getGridStateNonintrusive(pce::Dict, mod::Model, sys::Dict, unc::Dict)
+function getGridStateNonintrusive(pce::Dict, sys::Dict, unc::Dict)
     d = Dict{Symbol,Matrix{Float64}}()
     d[:pg], d[:qg], d[:e], d[:f] = pce[:pg], pce[:qg], pce[:e], pce[:f]
     d[:pd], d[:qd] = unc[:pd], unc[:qd]
     merge!(d, computeLineCurrentsNonIntrusive(pce, sys, unc))
-    # merge!(d,computeLineFlowsDeterministic(mod,sys)) #TODO
+    # merge!(d,computeLineFlowsDeterministic(,sys)) #TODO
 end
 
 function getGridStateDC(mod::Model, sys::Dict, unc::Dict)
@@ -35,11 +35,10 @@ function getGridStateDC(mod::Model, sys::Dict, unc::Dict)
 end
 
 # Compute PCE coefficients of line currents for each branch and each PCE degree
-function computeLineCurrents(mod::Model, grid::Dict, unc::Dict)
+function computeLineCurrents(E::Matrix, F::Matrix, grid::Dict, unc::Dict)
     A, ybr = grid[:A], grid[:Ybr]
-    gbr, bbr, bsh = real(ybr), imag(ybr), grid[:Bsh]
-    M, N, L = grid[:Nline], grid[:N], unc[:dim]
-    E, F = value.(mod[:e]), value.(mod[:f])
+    gbr, bbr = real(ybr), imag(ybr)
+    M, L = grid[:Nline], unc[:dim]
     # line power flow computations
     fil_real, fil_imag = zeros(M, L), zeros(M, L)
     for l in 1:M
@@ -53,23 +52,16 @@ function computeLineCurrents(mod::Model, grid::Dict, unc::Dict)
         :i_im => fil_imag)
 end
 
-# Same as computeLineCurrents(), but use the non-intrusively computed pce coefficients for e and f instead.
+# Line currents. Intrusive version data format
+function computeLineCurrents(mod::Model, grid::Dict, unc::Dict)
+    E, F = value.(mod[:e]), value.(mod[:f])
+    return computeLineCurrents(E, F, grid, unc)
+end
+
+# Lne currents. Non-intrusive version data format
 function computeLineCurrentsNonIntrusive(pce::Dict, grid::Dict, unc::Dict)
-    A, ybr = grid[:A], grid[:Ybr]
-    gbr, bbr = real(ybr), imag(ybr)
-    M, L = grid[:Nline], unc[:dim]
     E, F = pce[:e], pce[:f]
-    # line power flow computations
-    fil_real, fil_imag = zeros(M, L), zeros(M, L)
-    for l in 1:M
-        i, j = i, j = getNodesForLine(A, l)
-        for k in 1:L
-            fil_real[l, k] = gbr[l, l] * (E[i, k] - E[j, k]) - bbr[l, l] * (F[i, k] - F[j, k])
-            fil_imag[l, k] = bbr[l, l] * (E[i, k] - E[j, k]) + gbr[l, l] * (F[i, k] - F[j, k])
-        end
-    end
-    return Dict(:i_re => fil_real,
-        :i_im => fil_imag)
+    return computeLineCurrents(E, F, grid, unc)
 end
 
 # Compute line currents for a single, deterministic model evaluation
@@ -169,6 +161,6 @@ end
 # given the incidence matrix of a graph, find the nodes i and j that line l makes up
 # -1 ==> line begins
 #  1 ==> line ends
-function getNodesForLine(A::Matrix, l::Int)
+function getNodesForLine(A, l::Int)
     findfirst(isequal(-1), A[l, :]), findfirst(isequal(1), A[l, :])
 end
