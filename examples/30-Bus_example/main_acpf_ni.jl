@@ -6,17 +6,13 @@ caseFile = "case30.m"
 numSamples = 30
 maxDeg = 3
 
-# Initialize the network uncertainties and corresponding values
+println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, non-intrusive PCE =====\n")
+
+# Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
 initUncertainty_1(sys)
 
-
-# Just for debugging
-# set_optimizer_attribute(pf, "print_level", 2) # set verbosity of Ipopt output. Default is 5.
-# pf = PowerModels.run_ac_pf(network_data, Ipopt.Optimizer)
-# status = pf["termination_status"]
-# status == OPTIMAL || status == LOCALLY_SOLVED ? nothing : error("Potentially no solution found: ", status)
-# print_summary(pf["solution"])
+solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
 ## model(x). Wrapper function for NI-algo. Currently hard coded for bus 8
 # Input:  x - sampled value for active power of PQ bus.
@@ -26,7 +22,7 @@ function model(x)
     network_data["load"]["5"]["pd"] = p # bus 8 / load 5
     network_data["load"]["5"]["qd"] = q # bus 8 / load 5
 
-    pf = PowerModels.run_pf(network_data, ACRPowerModel, Ipopt.Optimizer)
+    pf = PowerModels.run_pf(network_data, ACRPowerModel, solver)
 
     # check if solution was feasible
     status = pf["termination_status"]
@@ -68,7 +64,7 @@ display(pf_state)
 
 # Sample for parameter values, using their PCE representations
 pf_samples = generateSamples(ξ, pf_state, sys, unc)
-println("\nPCE model evaluations for samples ξ:")
+println("\nPCE model evaluations for $(length(ξ)) samples ξ:")
 display(pf_samples)
 println()
 
@@ -80,13 +76,21 @@ println("PCE coefficients data saved to $f_coeff.\n")
 
 
 ### Plotting ###
-mycolor = "red"
-plotHistogram_gen30(pf_samples[:pg], "pg", "./plots/non-intrusive"; fignum = 3 + 10, color = mycolor)
-plotHistogram_gen30(pf_samples[:qg], "qg", "./plots/non-intrusive"; fignum = 4 + 10, color = mycolor)
-plotHistogram_bus(pf_samples[:pd], "pd", "./plots/non-intrusive"; fignum = 1 + 10, color = mycolor)
-plotHistogram_bus(pf_samples[:qd], "qd", "./plots/non-intrusive"; fignum = 2 + 10, color = mycolor)
-plotHistogram_nodal(pf_samples[:e], "e", "./plots/non-intrusive"; figbum = 5 + 10, color = mycolor)
-plotHistogram_nodal(pf_samples[:f], "f", "./plots/non-intrusive"; figbum = 6 + 10, color = mycolor)
+# mycolor = "red"
+# plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/non-intrusive"; fignum = 1 + 10, color = mycolor)
+# plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/non-intrusive"; fignum = 2 + 10, color = mycolor)
+
+# plotHistogram_9in9(pf_samples[:e][1:9, :], "e1", "./plots/non-intrusive"; fignum = 3 + 10, color = mycolor)
+# plotHistogram_9in9(pf_samples[:e][10:18, :], "e2", "./plots/non-intrusive"; fignum = 4 + 10, color = mycolor)
+# plotHistogram_9in9(pf_samples[:e][19:27, :], "e3", "./plots/non-intrusive"; fignum = 5 + 10, color = mycolor)
+# plotHistogram_9in9(pf_samples[:e][28:30, :], "e4", "./plots/non-intrusive"; fignum = 6 + 10, color = mycolor)
+
+# plotHistogram_9in9(pf_samples[:f][1:9, :], "f1", "./plots/non-intrusive"; fignum = 7 + 10, color = mycolor)
+# plotHistogram_9in9(pf_samples[:f][10:18, :], "f2", "./plots/non-intrusive"; fignum = 8 + 10, color = mycolor)
+# plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/non-intrusive"; fignum = 9 + 10, color = mycolor)
+# plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/non-intrusive"; fignum = 10 + 10, color = mycolor)
+
+# plotHistogram_unc(pf_samples[:pd][8, :], pf_samples[:qd][8, :], ["pd", "qd"], "./plots/non-intrusive"; fignum = 0 + 10, color = mycolor)
 
 
 ### POST PROCESSING ###
