@@ -4,7 +4,10 @@ using Random, PolyChaos
 Random.seed!(1234)
 
 # Parse network data
+PowerModels.logger_config!("error")
 network_data = PowerModels.parse_file(caseFile)
+network_data = make_basic_network(network_data) # no dc lines, switches, inactive components, ...
+
 # print_summary(network_data)
 N_bus = length(network_data["bus"])
 N_load = length(network_data["load"])
@@ -31,7 +34,6 @@ sys = Dict(
     :Nd => N_load,
     :Ng => N_gen,
     :Nline => N_branch,
-    :loadIdx => load_idx,
     :A => incidence,
     :Ybr => Ybr,
     :P => P,
@@ -47,7 +49,7 @@ function initUncertainty_1(sys::Dict)
     β = 4.666
     op = Beta01OrthoPoly(maxDeg, α, β)
 
-    println("Polynomial basis:")
+    println("Polynomial basis of size $(op.deg+1):")
     showbasis(op, digits = 2)
     println()
 
