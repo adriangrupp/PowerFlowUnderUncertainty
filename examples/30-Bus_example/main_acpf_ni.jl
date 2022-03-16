@@ -1,10 +1,11 @@
-using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, DelimitedFiles, JLD
+using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
 
 ### 30 Bus net: Non-intrusive PCE for stochastic power flow ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
 caseFile = "case30.m"
 numSamples = 30
 maxDeg = 4
+postProcessing = false
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, non-intrusive PCE =====\n")
 
@@ -69,29 +70,36 @@ display(pf_samples)
 println()
 
 
-### Store PCE coefficients ###
+### Store data for evaluation ###
+
+# PCE coefficients
 f_coeff = "coefficients/SPF_NI.jld"
 save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
+# Compute and store moments from PCE coefficients
+moments = computeMoments(pf_state, unc)
+f_moms = "coefficients/SPF_NI_moments.jld"
+save(f_moms, "moments", moments)
+println("PCE moments data saved to $f_moms.\n")
 
-### Plotting ###
-# mycolor = "red"
-# plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/non-intrusive"; fignum = 1 + 10, color = mycolor)
-# plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/non-intrusive"; fignum = 2 + 10, color = mycolor)
-
-# plotHistogram_9in9(pf_samples[:e][1:9, :], "e1", "./plots/non-intrusive"; fignum = 3 + 10, color = mycolor)
-# plotHistogram_9in9(pf_samples[:e][10:18, :], "e2", "./plots/non-intrusive"; fignum = 4 + 10, color = mycolor)
-# plotHistogram_9in9(pf_samples[:e][19:27, :], "e3", "./plots/non-intrusive"; fignum = 5 + 10, color = mycolor)
-# plotHistogram_9in9(pf_samples[:e][28:30, :], "e4", "./plots/non-intrusive"; fignum = 6 + 10, color = mycolor)
-
-# plotHistogram_9in9(pf_samples[:f][1:9, :], "f1", "./plots/non-intrusive"; fignum = 7 + 10, color = mycolor)
-# plotHistogram_9in9(pf_samples[:f][10:18, :], "f2", "./plots/non-intrusive"; fignum = 8 + 10, color = mycolor)
-# plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/non-intrusive"; fignum = 9 + 10, color = mycolor)
-# plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/non-intrusive"; fignum = 10 + 10, color = mycolor)
-
-# plotHistogram_unc(pf_samples[:pd][8, :], pf_samples[:qd][8, :], ["pd", "qd"], "./plots/non-intrusive"; fignum = 0 + 10, color = mycolor)
 
 
 ### POST PROCESSING ###
-# maybe later
+if postProcessing
+    mycolor = "red"
+    plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/non-intrusive"; fignum = 1 + 10, color = mycolor)
+    plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/non-intrusive"; fignum = 2 + 10, color = mycolor)
+
+    plotHistogram_9in9(pf_samples[:e][1:9, :], "e1", "./plots/non-intrusive"; fignum = 3 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:e][10:18, :], "e2", "./plots/non-intrusive"; fignum = 4 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:e][19:27, :], "e3", "./plots/non-intrusive"; fignum = 5 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:e][28:30, :], "e4", "./plots/non-intrusive"; fignum = 6 + 10, color = mycolor)
+
+    plotHistogram_9in9(pf_samples[:f][1:9, :], "f1", "./plots/non-intrusive"; fignum = 7 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:f][10:18, :], "f2", "./plots/non-intrusive"; fignum = 8 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/non-intrusive"; fignum = 9 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/non-intrusive"; fignum = 10 + 10, color = mycolor)
+
+    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/non-intrusive"; fignum = 0 + 10, color = mycolor)  
+end

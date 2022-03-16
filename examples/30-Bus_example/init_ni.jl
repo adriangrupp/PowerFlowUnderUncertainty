@@ -56,12 +56,10 @@ function initUncertainty_1(sys::Dict)
     println()
 
     # PCE of demand. Compute affine coefficients for each univariate unvertainty dimension and combine them
-    pd = zeros(sys[:Nd], maxDeg + 1)
-    qd = zeros(sys[:Nd], maxDeg + 1)
-    pd[:, 1] = sys[:Pd]
-    qd[:, 1] = sys[:Qd]
-    pd[5, [1, 2]] = calculateAffinePCE(op) # random load 
-    qd[5, [1, 2]] = copy(pd[5, [1,2]])
+    pd = zeros(1, maxDeg + 1)
+    qd = zeros(1, maxDeg + 1)
+    pd[1, [1, 2]] = calculateAffinePCE(op) # random load 
+    qd[1, [1, 2]] = copy(pd[1, [1,2]])
 
     global unc = Dict(:opq => op,
         :dim => op.deg + 1,
