@@ -1,7 +1,10 @@
-using JLD
-using LinearAlgebra: norm
-
+export compareCoefficients,
+compareToMCMoments
 ### Evaluation of experiment results ###
+
+
+#TODO show method to simply access the stored data
+
 
 # Comparison of PCE coefficients of different methods by ∞-Norm
 function compareCoefficients(file1::String, file2::String)
@@ -41,7 +44,7 @@ function compareToMCMoments(mcFile::String, pceFile::String)
 
     momentsMC = f1["moments"]
     momentsPCE = f2["moments"]
-
+    
     for (key, val) in momentsMC
         if haskey(momentsPCE, key)
             mat1, mat2 = val, momentsPCE[key] # coefficients are stored as matrices
@@ -54,13 +57,3 @@ function compareToMCMoments(mcFile::String, pceFile::String)
         end
     end
 end
-
-
-# Compare PCE coefficients
-# compareCoefficients("coefficients/SPF_intrusive.jld", "coefficients/SPF_sparse.jld")
-# compareCoefficients("coefficients/SPF_intrusive.jld", "coefficients/SPF_NI.jld")
-# compareCoefficients("coefficients/SPF_NI_2unc.jld", "coefficients/SPF_sparse_2unc.jld")
-
-# Compare Moments with MC
-compareToMCMoments("coefficients/SPF_MC_moments.jld", "coefficients/SPF_NI_2unc_moments.jld")
-compareToMCMoments("coefficients/SPF_MC_moments.jld", "coefficients/SPF_sparse_2unc_moments.jld")
