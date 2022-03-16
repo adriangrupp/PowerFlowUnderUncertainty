@@ -4,7 +4,7 @@ using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, DelimitedFil
 ## Take samples of power values, compute PF, perform regression for all needed variables.
 caseFile = "case30.m"
 numSamples = 30
-maxDeg = 3
+maxDeg = 4
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, non-intrusive PCE =====\n")
 
@@ -28,7 +28,7 @@ function model(x)
     status = pf["termination_status"]
     status == OPTIMAL || status == LOCALLY_SOLVED ? nothing : error("Potentially no solution found: ", status)
 
-    pg, qg = getPQResult(pf)
+    pg, qg = getGenPQResult(pf)
     vr, vi = getVoltageResult(pf)
 
     return Dict(:pg => pg,

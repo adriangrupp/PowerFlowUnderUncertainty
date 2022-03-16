@@ -19,15 +19,17 @@ Zbr = calc_basic_branch_series_impedance(network_data)
 # branch admittance
 Ybr = Diagonal(inv.(Zbr))
 
-# P and Q values of all buses (these are not nec. PQ buses or contain loads)
+# P and Q values for bus injection of all buses (these are not nec. PQ buses or contain loads)
+# injection = calc_basic_bus_injection(network_data)
+# P = real(injection)
+# Q = imag(injection)
+
+# P and Q values for load buses
 # load_idx = getLoadIndices(network_data)
-injection = calc_basic_bus_injection(network_data)
-P = real(injection)
-Q = imag(injection)
+Pload, Qload = getLoadPQ(network_data)
 
+# generator cost
 costquad, costlin = getCost(network_data)
-
-# Bsh = TODO
 
 sys = Dict(
     :Nbus => N_bus,
@@ -36,14 +38,14 @@ sys = Dict(
     :Nline => N_branch,
     :A => incidence,
     :Ybr => Ybr,
-    :P => P,
-    :Q => Q,
+    :Pd => Pload,
+    :Qd => Qload,
     :costquad => costquad,
     :costlin => costlin
 )
 
 
-# Initialization for 1 uncertainty (bus 8)
+# Initialization for 1 uncertainty (bus 8/load 5)
 function initUncertainty_1(sys::Dict)
     α = 2
     β = 4.666
@@ -54,12 +56,12 @@ function initUncertainty_1(sys::Dict)
     println()
 
     # PCE of demand. Compute affine coefficients for each univariate unvertainty dimension and combine them
-    pd = zeros(sys[:Nbus], maxDeg + 1)
-    qd = zeros(sys[:Nbus], maxDeg + 1)
-    pd[:, 1] = sys[:P]
-    qd[:, 1] = sys[:Q]
-    pd[8, [1, 2]] = calculateAffinePCE(op) # random load 
-    qd[8, [1, 2]] = copy(pd[8, [1,2]])
+    pd = zeros(sys[:Nd], maxDeg + 1)
+    qd = zeros(sys[:Nd], maxDeg + 1)
+    pd[:, 1] = sys[:Pd]
+    qd[:, 1] = sys[:Qd]
+    pd[5, [1, 2]] = calculateAffinePCE(op) # random load 
+    qd[5, [1, 2]] = copy(pd[5, [1,2]])
 
     global unc = Dict(:opq => op,
         :dim => op.deg + 1,
