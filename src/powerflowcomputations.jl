@@ -58,18 +58,17 @@ function computeLineCurrents(mod::Model, grid::Dict, unc::Dict)
     return computeLineCurrents(E, F, grid, unc)
 end
 
-# Lne currents. Non-intrusive version data format
+# Line currents. Non-intrusive version data format
 function computeLineCurrentsNonIntrusive(pce::Dict, grid::Dict, unc::Dict)
     E, F = pce[:e], pce[:f]
     return computeLineCurrents(E, F, grid, unc)
 end
 
 # Compute line currents for a single, deterministic model evaluation
-function computeLineCurrentsDeterministic(mod::Model, grid::Dict)
+function computeLineCurrentsDeterministic(E::Vector, F::Vector, grid::Dict)
     A, ybr = grid[:A], grid[:Ybr]
-    gbr, bbr, bsh = real(ybr), imag(ybr), grid[:Bsh]
-    M, N = grid[:Nline], grid[:N]
-    E, F = value.(mod[:e]), value.(mod[:f])
+    gbr, bbr = real(ybr), imag(ybr)
+    M = grid[:Nline]
     # line power flow computations
     fil_real, fil_imag = zeros(M), zeros(M) # vectors not matrices
     for l in 1:M
@@ -78,9 +77,14 @@ function computeLineCurrentsDeterministic(mod::Model, grid::Dict)
         fil_imag[l] = bbr[l, l] * (E[i] - E[j]) + gbr[l, l] * (F[i] - F[j])
     end
     return Dict(:i_re => fil_real,
-        :i_im => fil_imag)
+    :i_im => fil_imag)
 end
 
+# Deterministic line currents. Custom JuMP model version
+function computeLineCurrentsDeterministic(mod::Model, grid::Dict)
+    E, F = value.(mod[:e]), value.(mod[:f])
+    return computeLineCurrentsDeterministic(E, F, grid)
+end
 
 function computeLineFlows(mod::Model, grid::Dict, unc::Dict)
     A, ybr, T3, T2 = grid[:A], grid[:Ybr], unc[:T3], unc[:T2]
