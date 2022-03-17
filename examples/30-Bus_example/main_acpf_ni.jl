@@ -11,50 +11,22 @@ println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, non-intr
 
 # Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-initUncertainty_1(sys)
+initUncertainty_1u(sys)
 
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
-## model(x). Wrapper function for NI-algo. Currently hard coded for bus 8
-# Input:  x - sampled value for active power of PQ bus.
-# Return: dict of PF outputs.
-function model(x)
-    p, q = x, x
-    network_data["load"]["5"]["pd"] = p # bus 8 / load 5
-    network_data["load"]["5"]["qd"] = q # bus 8 / load 5
-
-    pf = PowerModels.run_pf(network_data, ACRPowerModel, solver)
-
-    # check if solution was feasible
-    status = pf["termination_status"]
-    status == OPTIMAL || status == LOCALLY_SOLVED ? nothing : error("Potentially no solution found: ", status)
-
-    pg, qg = getGenPQResult(pf)
-    vr, vi = getVoltageResult(pf)
-
-    return Dict(:pg => pg,
-        :qg => qg,
-        :e => vr, # we use e and f as convention for real and imaginary voltage parts
-        :f => vi)
-end
-
-## Simulation results: each row of a parameter describes a bus
-pfRes = Dict(:pg => Array{Float64}(undef, N_gen, 0),
-    :qg => Array{Float64}(undef, N_gen, 0),
-    :e => Array{Float64}(undef, N_bus, 0),
-    :f => Array{Float64}(undef, N_bus, 0))
 
 # Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
 for x in samples
-    res = model(x)
+    res = model1u(x)
     pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
     pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
     pfRes[:e] = hcat(pfRes[:e], res[:e])
     pfRes[:f] = hcat(pfRes[:f], res[:f])
 end
 
-# Perform the actual regression for PCE coefficients on pd, qd, e and f
+# Perform the regression for PCE coefficients on pd, qd, e and f
 println("Compute non-intrusive PCE coefficients...\n")
 pce = computeCoefficientsNI(samples, pfRes, unc)
 
