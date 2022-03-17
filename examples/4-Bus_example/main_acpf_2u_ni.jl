@@ -7,7 +7,7 @@ include("init_ni.jl")
 
 
 postProcessing = false
-numSamples = 10
+numSamples = 30
 maxDegree = deg
 numUnc = 2
 initMultiUncertainty(numUnc)
@@ -60,7 +60,7 @@ println("Compute non-intrusive PCE coefficients...\n")
 pce = computeCoefficientsNI(X, busRes, unc)
 
 # Get PCE of currents, branch flows and demands
-pf_state = getGridStateNonintrusive(pce, pf, sys, unc)
+pf_state = getGridStateNonintrusive(pce, sys, unc)
 println("PCE coefficients:")
 display(pf_state)
 

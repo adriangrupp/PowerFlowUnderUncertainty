@@ -95,7 +95,7 @@ for (key, samples) in pf_samples
 end
 
 # Store moments
-f_moms = "coefficients/MC_moments.jld"
+f_moms = "coefficients/SPF_MC_2unc_moments.jld"
 save(f_moms, "moments", moments)
 println("Monte Carlo moments data saved to $f_moms.\n")
 
