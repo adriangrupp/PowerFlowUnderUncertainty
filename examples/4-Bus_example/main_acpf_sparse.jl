@@ -54,7 +54,7 @@ end
 # Perform the sparse regression for PCE coefficients on pd, qd, e and f using subspace pursuit.
 println("\nCompute sparse PCE coefficients with subspace pursuit (SP)...\n")
 @time begin
-    pce = computeCoefficientsSparse(X, busRes, maxDegree, unc)
+    pce = computeCoefficientsSparse(X, busRes, unc; K=3)
 end
 
 # Get PCE of currents, branch flows and demands
