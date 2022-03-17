@@ -48,11 +48,10 @@ function compareToMCMoments(mcFile::String, pceFile::String)
     for (key, val) in momentsMC
         if haskey(momentsPCE, key)
             mat1, mat2 = val, momentsPCE[key] # coefficients are stored as matrices
-
             diff = round.(mat1 - mat2, digits = 5) # difference between all entries
             # compare diff rowwise, i.e. for each bus
             for (i, row) in enumerate(eachrow(diff))
-                println("($key, $i)  \t Error mean:\t", diff[1], "      \tError std:\t", diff[2])
+                println("($key, $i)  \t Error mean:\t", row[1], "      \tError std:\t", row[2])
             end
         end
     end
