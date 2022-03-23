@@ -24,8 +24,9 @@ end
 Get P and Q values for load buses
 """
 function getLoadPQ(network_data)
-    P = [el[2]["pd"] for el in network_data["load"]]
-    Q = [el[2]["qd"] for el in network_data["load"]]
+    load = sort(collect(network_data["load"]), by = x -> parse(Int, x[1])) # sort solution/gen entries by IDs which are converted from string to Int
+    P = [el[2]["pd"] for el in load]
+    Q = [el[2]["qd"] for el in load]
     return P, Q
 end
 """
