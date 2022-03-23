@@ -13,3 +13,6 @@ docs/build
 *.csv
 *.tex
 *.jld
+
+# research files
+examples/research_notes
