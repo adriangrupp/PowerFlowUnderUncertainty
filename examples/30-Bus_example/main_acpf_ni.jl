@@ -3,7 +3,7 @@ using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
 ### 30 Bus net: Non-intrusive PCE for stochastic power flow ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
 caseFile = "case30.m"
-numSamples = 30
+numSamples = 60
 maxDeg = 4
 postProcessing = false
 
@@ -11,15 +11,30 @@ println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, non-intr
 
 # Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-initUncertainty_1u(sys)
+network_data = readCaseFlie(caseFile)
+sys = parseNetworkData(network_data)
+p = sys[:Pd][5]
+q = sys[:Qd][5]
+unc = initUncertainty_1u(p, q)
+
+## Simulation results: each row of a parameter describes a bus
+pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
+    :qg => Array{Float64}(undef, sys[:Ng], 0),
+    :e => Array{Float64}(undef, sys[:Nbus], 0),
+    :f => Array{Float64}(undef, sys[:Nbus], 0)
+)
 
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
 
 # Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
-for x in samples
-    res = model1u(x)
+for x in eachrow(unc[:samples_bus]) # each row is a sample set
+    network_data["load"]["5"]["pd"] = x[1] # bus 8 / load 5
+    network_data["load"]["5"]["qd"] = x[2] # bus 8 / load 5
+
+    res = runModel(network_data, solver) # pass modified network data
+
     pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
     pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
     pfRes[:e] = hcat(pfRes[:e], res[:e])
@@ -28,7 +43,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("Compute non-intrusive PCE coefficients...\n")
-pce = computeCoefficientsNI(samples, pfRes, unc)
+pce = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
 
 # Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
@@ -36,8 +51,8 @@ println("PCE coefficients:")
 display(pf_state)
 
 # Sample for parameter values, using their PCE representations
-pf_samples = generateSamples(ξ, pf_state, sys, unc)
-println("\nPCE model evaluations for $(length(ξ)) samples ξ:")
+pf_samples = generateSamples(unc[:ξ], pf_state, sys, unc)
+println("\nPCE model evaluations for $(length(unc[:ξ])) samples ξ:")
 display(pf_samples)
 println()
 
@@ -73,5 +88,5 @@ if postProcessing
     plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/non-intrusive"; fignum = 9 + 10, color = mycolor)
     plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/non-intrusive"; fignum = 10 + 10, color = mycolor)
 
-    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/non-intrusive"; fignum = 0 + 10, color = mycolor)  
+    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/non-intrusive"; fignum = 0 + 10, color = mycolor)
 end

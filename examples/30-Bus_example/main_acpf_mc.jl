@@ -3,15 +3,19 @@ using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
 ### 30 Bus net: Monte Carlo reference for stochastic power flow ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
 caseFile = "case30.m"
-numSamples = 100
+numSamples = 100000
 Nunc = 1
-postProcessing = false
+maxDeg = 4
+postProcessing = true
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, Monte Carlo Simulation =====\n")
 
 # Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-initUncertainty_1(sys)
+sys = parseCaseFile(caseFile)
+p = sys[:Pd][5]
+q = sys[:Qd][5]
+unc = initUncertainty_1u(p, q)
 
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
@@ -21,19 +25,20 @@ pf_samples = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
     :e => Array{Float64}(undef, sys[:Nbus], 0),
     :f => Array{Float64}(undef, sys[:Nbus], 0),
     :i_re => Array{Float64}(undef, sys[:Nline], 0),
-    :i_im => Array{Float64}(undef, sys[:Nline], 0))
+    :i_im => Array{Float64}(undef, sys[:Nline], 0)
+)
 
-# Store data for uncertain load bus 
-X = reshape(samples, length(samples), Nunc) 
-pf_samples[:pd] = X'
-pf_samples[:qd] = X'
+pd = unc[:samples_bus][:, 1]
+qd = unc[:samples_bus][:, 2]
+pf_samples[:pd] = reshape(pd, length(pd), Nunc)
+pf_samples[:qd] = reshape(qd, length(qd), Nunc)
+
 
 
 ## model(x). Wrapper function. Currently hard coded for bus 8
 # Input:  x - sampled value for active power of PQ bus.
 # Return: dict of PF outputs.
-function model(x)
-    p, q = x[1], x[1]
+function model(p, q)
     network_data["load"]["5"]["pd"] = p # bus 8 / load 5
     network_data["load"]["5"]["qd"] = q # bus 8 / load 5
 
@@ -59,11 +64,11 @@ end
 # Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
 i = 1
-for x in eachrow(X)
+for x in eachrow(unc[:samples_bus])
     i % 1000 == 0 ? println("Iteration $i") : nothing
     global i += 1
 
-    res = model(x)
+    res = model(x[1], x[2])
     pf_samples[:pg] = hcat(pf_samples[:pg], res[:pg])
     pf_samples[:qg] = hcat(pf_samples[:qg], res[:qg])
     pf_samples[:e] = hcat(pf_samples[:e], res[:e])
