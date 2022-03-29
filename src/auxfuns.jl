@@ -1,12 +1,13 @@
 export getLoadIndices,
 getCost,
 getLoadPQ,
+getGenPQ,
 getGenPQResult,
 getVoltageResult
 
 
 """
-Get indices of load buses
+Get indices of all load buses
 """
 function getLoadIndices(network_data)
     idx = [el[2]["load_bus"] for el in network_data["load"]]
@@ -27,6 +28,15 @@ function getLoadPQ(network_data)
     load = sort(collect(network_data["load"]), by = x -> parse(Int, x[1])) # sort solution/gen entries by IDs which are converted from string to Int
     P = [el[2]["pd"] for el in load]
     Q = [el[2]["qd"] for el in load]
+    return P, Q
+end
+"""
+Get P and Q values for generator buses
+"""
+function getGenPQ(network_data)
+    gen = sort(collect(network_data["gen"]), by = x -> parse(Int, x[1])) # sort solution/gen entries by IDs which are converted from string to Int
+    P = [el[2]["pg"] for el in gen]
+    Q = [el[2]["qg"] for el in gen]
     return P, Q
 end
 """
