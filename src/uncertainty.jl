@@ -12,6 +12,7 @@ function ρ_gauss(x,μ,σ)
     1 / sqrt(2*π*σ^2) * exp(-(x - μ)^2 / (2σ^2))
 end
 
+# Intrusive univariate uncertainty
 function setupUncertainty(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
     @assert length(μ) == length(σ) == length(w) "inconsistent lengths of μ and σ"
     ρ(x) = sum( w[i]*ρ_gauss(x,μ[i],σ[i]) for i in 1:length(w) )
@@ -33,28 +34,46 @@ function setupUncertainty(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
                 :dim=>size(pd,2))
 end
 
-function setupUncertaintySparse(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
+# Non-intrusive univariate Gaussian mixture uncertainty
+function setupUncertaintySparse(μ::Vector, σ::Vector, w::Vector, n::Int, deg::Int)
     @assert length(μ) == length(σ) == length(w) "inconsistent lengths of μ and σ"
-    ρ(x) = sum( w[i]*ρ_gauss(x,μ[i],σ[i]) for i in 1:length(w) )
-    meas = Measure("my_GaussMixture", ρ, (-Inf,Inf), false, Dict(:μ=>μ,:σ=>σ,:w=>w)) # build measure
-    opq = OrthoPoly("my_op",deg,meas;Nquad=150,Nrec = 5*deg, discretization=stieltjes) # construct orthogonal polynomial
+    ρ(x) = sum(w[i] * ρ_gauss(x, μ[i], σ[i]) for i in 1:length(w))
+    meas = Measure("my_GaussMixture", ρ, (-Inf, Inf), false, Dict(:μ => μ, :σ => σ, :w => w)) # build measure
+    opq = OrthoPoly("my_op", deg, meas; Nquad = 150, Nrec = 5 * deg, discretization = stieltjes) # construct orthogonal polynomial
     println("Polynomial basis:")
-    showbasis(opq,digits=2) # in case you wondered
+    showbasis(opq, digits = 2) # in case you wondered
     println()
     # PCE of demands
-    pd = zeros(n,deg+1)
-    pd[1, [1,2]] = calculateAffinePCE(opq) # random load (bus 2)
+    pd = zeros(n, deg + 1)
+    pd[1, [1, 2]] = calculateAffinePCE(opq) # random load (bus 2)
     pd[2, 1] = 1.2 # deterministic load (bus 4)
     qd = 0.85 * copy(pd)
 
-    return Dict(:opq=>opq,
-                :dim=>opq.deg+1,
-                :pd=>pd,
-                :qd=>qd)
+    return Dict(:opq => opq,
+        :dim => opq.deg + 1,
+        :pd => pd,
+        :qd => qd)
 end
 
-# Setup for multiple uncertainties - for now hard coded for buses and same uncertainty (Gaussian mixture)
-function setupUncertaintyMulti(μ::Vector, σ::Vector, w::Vector, Nd::Int, deg::Int, numUnc::Int)
+# Univariate general uncertainty
+function setupUncertainty(deg::Int, op::AbstractOrthoPoly)
+    println("Polynomial basis:")
+    showbasis(op, digits = 2) # in case you wondered
+    println()
+    # PCE of demand. Compute affine coefficients for each univariate unvertainty dimension and combine them
+    pd = zeros(n, deg + 1)
+    pd[1, [1,2]] = calculateAffinePCE(op) # random load 
+    qd = copy(pd)
+
+    return Dict(:opq => op,
+        :dim => op.deg + 1,
+        :pd => pd,
+        :qd => qd)
+end
+
+
+# Setup for 2 uncertainties (Gaussian mixture)
+function setupUncertaintyMulti(μ::Vector, σ::Vector, w::Vector, deg::Int, numUnc::Int)
     @assert length(μ) == length(σ) == length(w) "inconsistent lengths of μ and σ"
     ρ(x) = sum(w[i] * ρ_gauss(x, μ[i], σ[i]) for i in 1:length(w))
     meas = Measure("GaussMixture", ρ, (-Inf, Inf), false, Dict(:μ => μ, :σ => σ, :w => w)) # build measure
@@ -70,17 +89,37 @@ function setupUncertaintyMulti(μ::Vector, σ::Vector, w::Vector, Nd::Int, deg::
     qd = 0.85 * copy(pd)
 
     return Dict(:opq => mop,
-        :dim => mop.dim, # TODO
+        :dim => mop.dim,
+        :pd => pd,
+        :qd => qd)
+end
+
+# Setup for multiple uncertainties - for now hard coded for 3 load buses
+function setupUncertaintyMulti(deg::Int, ops::Vector, numUnc::Int)
+    mop = MultiOrthoPoly(ops, deg)
+    println("Polynomial basis:")
+    show(mop) # in case you wondered
+    println()
+    # PCE of demands. Compute affine coefficients for each univariate unvertainty dimension and combine them
+    pd1 = assign2multi(calculateAffinePCE(mop.uni[1]), 1, mop.ind) # random load 
+    pd2 = assign2multi(calculateAffinePCE(mop.uni[2]), 2, mop.ind) # random load 
+    pd3 = assign2multi(calculateAffinePCE(mop.uni[3]), 3, mop.ind) # random load 
+    pd = vcat(pd1', pd2', pd3')
+    qd = 0.85 * copy(pd)
+
+    return Dict(:opq => mop,
+        :dim => mop.dim,
         :pd => pd,
         :qd => qd)
 end
 
 
+# TODO: merge with sparse method
 # Compute the non-intrusive pce coefficients component-wise by least squares regression
 function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
-    # Evaluate polynomial basis for all X samples. Multiply dispatched for uni and multivar
+    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
     Φ = evaluate(X, unc[:opq])
-    # transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
+    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
     typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing 
     
     dim = unc[:dim]
@@ -147,6 +186,7 @@ function sampleFromGaussianMixture(n::Int,μ::Vector{},σ::Vector{},w::Vector{})
     return X
 end
 
+# Generate samples from the PCE of all the system parameters.
 function generateSamples(x,d_in::Dict,sys::Dict,unc::Dict)
     Φ = evaluate(x,unc[:opq])
     # transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions

@@ -1,5 +1,5 @@
 # Initialize for (sparse) non-intrusive PCE - global parameters, uncertainties, polynomial basis, and samples
-using Random, PolyChaos
+using Random, PolyChaos, LinearAlgebra
 Random.seed!(1234)
 
 """
@@ -16,17 +16,17 @@ end
 Parse network data
 """
 function parseNetworkData(network_data)
+    # Topology
     N_bus = length(network_data["bus"])
     N_load = length(network_data["load"])
     N_gen = length(network_data["gen"])
     N_branch = length(network_data["branch"])
-
     incidence = calc_basic_incidence_matrix(network_data) * -1 # we use inverse notation for directions
+
+    # Physical parameters
     Zbr = calc_basic_branch_series_impedance(network_data)
     Ybr = Diagonal(inv.(Zbr)) # branch admittance
-
     # P and Q values for load and generator buses separately
-    # load_idx = getLoadIndices(network_data)
     Pload, Qload = getLoadPQ(network_data)
     Pg, Qg = getGenPQ(network_data)
 
@@ -38,7 +38,7 @@ function parseNetworkData(network_data)
     # generator cost
     costquad, costlin = getCost(network_data)
 
-    sys = Dict(
+    return Dict(
         :Nbus => N_bus,
         :Nd => N_load,
         :Ng => N_gen,
@@ -99,6 +99,58 @@ function initUncertainty_1u(p, q)
 end
 
 """
+ Initialization for 2 uncertainties (2 β-distributions)
+"""
+function initUncertainty_2u(p::Vector, q::Vector)
+    # Setup multivariate basis
+    α = [2, 3]
+    β = [4.666, 3]
+    op1 = Beta01OrthoPoly(maxDeg, α[1], β[1]; Nrec = maxDeg+2)
+    op2 = Beta01OrthoPoly(maxDeg, α[2], β[2]; Nrec = maxDeg+2)
+    ops = [op1, op2]
+
+    mop = MultiOrthoPoly(ops, maxDeg)
+    println("Polynomial basis:")
+    show(mop)
+    println()
+
+    # Sample uncertainties for NI model (samples) and postprocessing (ξ)
+    samples = [sampleMeasure(numSamples, op) for op in ops]
+    samples = hcat(samples...) # numSamples x nUnc matrix
+    ξ = [sampleMeasure(5000, op) for op in ops]  # Evaluation samples for each uncertainty
+    ξ = hcat(ξ...) # 5000 x nUnc
+
+    # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
+    pd = zeros(nUnc, mop.dim) # matrix storing all pd PCE coefficients
+    qd = zeros(nUnc, mop.dim)
+    samples_p = zeros(numSamples, nUnc) # matrix storing all p-samples
+    samples_q = zeros(numSamples, nUnc) 
+    δ = 0.15 # deviation from nominal value
+    # Iterate for all uncertainties
+    for (i, op) in enumerate(ops)
+        lp, up = [1 - δ, 1 + δ] * p[i]
+        lq, uq = [1 - δ, 1 + δ] * q[i]
+        pce_p = supp2pce(α[i], β[i]) * [lp; up]
+        pce_q = supp2pce(α[i], β[i]) * [lq; uq]
+        pdi = assign2multi(pce_p, i, mop.ind) # Get sparse array assigned with first two pce coefficients to multivariate polynomial
+        qdi = assign2multi(pce_q, i, mop.ind)
+        pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
+        qd[i, :] = qdi'
+
+        samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Generate samples for each uncertainty
+        samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Generate samples for each uncertainty
+    end
+
+    return Dict(:opq => mop,
+            :dim => mop.dim,
+            :pd => pd, # PCE of initially uncertain buses TODO: currently this encompasses gens and loads
+            :qd => qd,
+            :samples_unc => samples,                    # samples for exogenous uncertainties
+            :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
+            :ξ => ξ)
+end
+
+"""
 Managing of the PF model. Wrapper function for NI-algo. Currently hard coded for bus 8 / load 5
 Input:  network_data - modified netword description of PQ values. solver - initialized NLP solver
 Return: dict of PF outputs.
@@ -117,63 +169,4 @@ function runModel(network_data, solver)
         :qg => qg,
         :e => vr, # we use e and f as convention for real and imaginary voltage parts
         :f => vi)
-end
-
-
-"""
- Initialization for 2 uncertainties (2 β-distributions)
-"""
-function initUncertainty_2u(p::Vector, q::Vector)
-    # Setup multivariate basis
-    α = [2, 3]
-    β = [4.666, 3]
-    op1 = Beta01OrthoPoly(maxDeg, α[1], β[1]; Nrec = maxDeg+2)
-    op2 = Beta01OrthoPoly(maxDeg, α[2], β[2]; Nrec = maxDeg+2)
-    ops = [op1, op2]
-
-    mop = MultiOrthoPoly(ops, maxDeg)
-    println("Polynomial basis:")
-    show(mop)
-    println()
-
-    # Sample uncertainties for NI model (samples) and postprocessing (ξ)
-    samp = [sampleMeasure(numSamples, op) for op in ops]
-    samples = hcat(samp...) # numSamples x nUnc matrix
-    ξ = [sampleMeasure(5000, op) for op in ops]  # Evaluation samples for each uncertainty
-    ξ = hcat(ξ...) # 5000 x nUnc
-
-    # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
-    pd = zeros(nUnc, mop.dim) # matrix storing all pd PCE coefficients
-    qd = zeros(nUnc, mop.dim)
-    samples_p = zeros(numSamples, nUnc) # matrix storing all p-samples
-    samples_q = zeros(numSamples, nUnc) 
-    δ = 0.15 # deviation from nominal value
-    # Iterate for all uncertainties
-    for (i, op) in enumerate(ops)
-        lp, up = [1 - δ, 1 + δ] * p[i]
-        lq, uq = [1 - δ, 1 + δ] * q[i]
-        pce_p = supp2pce(α[i], β[i]) * [lp; up]
-        pce_q = supp2pce(α[i], β[i]) * [lq; uq]
-        pdi = assign2multi(pce_p, i, mop.ind) # Get sparse array assigned with first two pce coefficients
-        qdi = assign2multi(pce_q, i, mop.ind)
-        pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
-        qd[i, :] = qdi'
-
-        samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Generate samples for each uncertainty
-        samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Generate samples for each uncertainty
-    end
-
-    return Dict(:opq => mop,
-            :dim => mop.dim,
-            :pd => pd,
-            :qd => qd,
-            :samples_unc => samples,    # samples for exogenous uncertainties
-            :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
-            :ξ => ξ)
-end
-
-
-# Initialization for 4 uncertainties
-function initUncertainty_4(numUnc::Int)
-    # ...
 end
