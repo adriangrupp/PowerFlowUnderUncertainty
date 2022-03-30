@@ -1,12 +1,21 @@
-export compareCoefficients,
+export showData,
+compareCoefficients,
 compareToMCMoments
+
 ### Evaluation of experiment results ###
 
+"""
+Show method to simply access the stored data
+"""
+function showData(file::String)
+    f = load(file)
+    haskey(f, "pf_state") && display(f["pf_state"])
+    haskey(f, "moments")  && display(f["moments"])
+end
 
-#TODO show method to simply access the stored data
-
-
-# Comparison of PCE coefficients of different methods by ∞-Norm
+"""
+Comparison of PCE coefficients of different methods by ∞-Norm.
+"""
 function compareCoefficients(file1::String, file2::String)
     f1 = load(file1)
     f2 = load(file2)
@@ -21,21 +30,22 @@ function compareCoefficients(file1::String, file2::String)
         if haskey(coeffs2, key)
             mat1, mat2 = val, coeffs2[key] # coefficients are stored as matrices
         
-            display(mat1)
-            display(mat2)
+            # display(mat1)
+            # display(mat2)
         
             diff = mat1 - mat2 # difference between coefficients
             # compare coefficients rowwise, i.e. for each bus
             for (i, row) in enumerate(eachrow(diff))
-                println("∞-Norm for $key, $i:\t ", norm(row, Inf))
+                println("∞-Norm for $(key), $(i):\t ", norm(row, Inf))
         
             end
         end
     end
 end
 
-
-# Compute PCE moments and compare to Monte Carlo moments
+"""
+Compare PCE moments to Monte Carlo moments.
+"""
 function compareToMCMoments(mcFile::String, pceFile::String)
     f1 = load(mcFile)
     f2 = load(pceFile)
@@ -45,13 +55,16 @@ function compareToMCMoments(mcFile::String, pceFile::String)
     momentsMC = f1["moments"]
     momentsPCE = f2["moments"]
     
+    display(momentsMC)
+    display(momentsPCE)
+
     for (key, val) in momentsMC
         if haskey(momentsPCE, key)
             mat1, mat2 = val, momentsPCE[key] # coefficients are stored as matrices
-            diff = round.(mat1 - mat2, digits = 5) # difference between all entries
+            diff = round.(mat1 - mat2, digits = 8) # difference between all entries
             # compare diff rowwise, i.e. for each bus
             for (i, row) in enumerate(eachrow(diff))
-                println("($key, $i)  \t Error mean:\t", row[1], "      \tError std:\t", row[2])
+                println("($key, $i)  \t Error mean:\t", row[1], "\t\tError std:\t", row[2])
             end
         end
     end
