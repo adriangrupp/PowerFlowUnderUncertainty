@@ -96,18 +96,18 @@ println("Monte Carlo moments data saved to $f_moms.\n")
 ### POST PROCESSING ###
 if postProcessing
     mycolor = "red"
-    plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/2u_monte-carlo"; fignum = 1 + 10, color = mycolor)
-    plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/2u_monte-carlo"; fignum = 2 + 10, color = mycolor)
+    plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/2u_monte-carlo"; fignum=1 + 10, color=mycolor)
+    plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/2u_monte-carlo"; fignum=2 + 10, color=mycolor)
 
-    plotHistogram_9in9(pf_samples[:e][1:9, :], "e1", "./plots/2u_monte-carlo"; fignum = 3 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:e][10:18, :], "e2", "./plots/2u_monte-carlo"; fignum = 4 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:e][19:27, :], "e3", "./plots/2u_monte-carlo"; fignum = 5 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:e][28:30, :], "e4", "./plots/2u_monte-carlo"; fignum = 6 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:e][1:9, :], "e1", "./plots/2u_monte-carlo"; fignum=3 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:e][10:18, :], "e2", "./plots/2u_monte-carlo"; fignum=4 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:e][19:27, :], "e3", "./plots/2u_monte-carlo"; fignum=5 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:e][28:30, :], "e4", "./plots/2u_monte-carlo"; fignum=6 + 10, color=mycolor)
 
-    plotHistogram_9in9(pf_samples[:f][1:9, :], "f1", "./plots/2u_monte-carlo"; fignum = 7 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:f][10:18, :], "f2", "./plots/2u_monte-carlo"; fignum = 8 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/2u_monte-carlo"; fignum = 9 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/2u_monte-carlo"; fignum = 10 + 10, color = mycolor)
-
-    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/2u_monte-carlo"; fignum = 0 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:f][1:9, :], "f1", "./plots/2u_monte-carlo"; fignum=7 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:f][10:18, :], "f2", "./plots/2u_monte-carlo"; fignum=8 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/2u_monte-carlo"; fignum=9 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/2u_monte-carlo"; fignum=10 + 10, color=mycolor)
+    # Plot P & Q of uncertainties
+    plotHistogram_2unc(pf_samples[:pd], pf_samples[:qd], ["pd_8", "qd_8", "pg_13", "qg_13"], "./plots/2u_monte-carlo"; fignum=0 + 10, color=mycolor)
 end
