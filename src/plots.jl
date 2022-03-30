@@ -1,6 +1,7 @@
 export plotHistogram,
     plotHistogram_bus,
     plotHistogram_unc,
+    plotHistogram_2unc,
     plotHistogram_nodal,
     plotHistogram_branch,
     plotHistogram_6in9,
@@ -42,6 +43,21 @@ function plotHistogram_unc(par1::Vector, par2::Vector, name::Vector{String}, dir
     clf()
 end
 
+# Plot Histrogram for 2 uncertain bus parameters
+function plotHistogram_2unc(p::Matrix, q::Matrix, name::Vector{String}, dir::String; kwargs...)
+    haskey(kwargs, :fignum) ? figure(kwargs[:fignum]) : figure()
+    plt[:subplot](221)
+    plotHistogram(p[1,:]; xlabel=name[1], ylabel="ρ(" * name[1] * ")", kwargs...)
+    plt[:subplot](222)
+    plotHistogram(q[1,:]; xlabel=name[2], ylabel="ρ(" * name[2] * ")", kwargs...)
+    plt[:subplot](223)
+    plotHistogram(p[2,:]; xlabel=name[3], ylabel="ρ(" * name[3] * ")", kwargs...)
+    plt[:subplot](224)
+    plotHistogram(q[2,:]; xlabel=name[4], ylabel="ρ(" * name[4] * ")", kwargs...)
+    println("Plotting: $dir/uncs.pdf")
+    savefig("$dir/uncs.pdf")
+    clf()
+end
 
 # Plots for all nodes at once (4 buses)
 function plotHistogram_nodal(v::Matrix, name::String, dir::String; kwargs...)
