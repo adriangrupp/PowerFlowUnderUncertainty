@@ -30,8 +30,8 @@ pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
     :f => Array{Float64}(undef, sys[:Nbus], 0)
 )
 
+## Initialize solver
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
-
 
 ## Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
@@ -70,13 +70,13 @@ println()
 ### Store data for evaluation ###
 
 # PCE coefficients
-f_coeff = "coefficients/SPF_NI_2u.jld"
+f_coeff = "coefficients/SPF_2u_NI.jld"
 save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
 # Compute and store moments from PCE coefficients
 moments = computeMoments(pf_state, unc)
-f_moms = "coefficients/SPF_NI_2u_moments.jld"
+f_moms = "coefficients/SPF_2u_NI_moments.jld"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 

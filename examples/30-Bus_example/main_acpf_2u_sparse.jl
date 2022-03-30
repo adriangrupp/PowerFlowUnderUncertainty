@@ -10,7 +10,7 @@ caseFile = "case30.m"
 numSamples = 60
 maxDeg = 4
 nUnc = 2
-postProcessing = true
+postProcessing = false
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 2 Uncertainties, sparse PCE =====\n")
 
@@ -53,7 +53,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("\nCompute sparse PCE coefficients...\n")
-pce = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K = 5)
+pce = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K = 7)
 
 # Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
@@ -70,13 +70,13 @@ println()
 ### Store data for evaluation ###
 
 # PCE coefficients
-f_coeff = "coefficients/SPF_sparse_2u.jld"
+f_coeff = "coefficients/SPF_2u_sparse.jld"
 save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
 # Compute and store moments from PCE coefficients
 moments = computeMoments(pf_state, unc)
-f_moms = "coefficients/SPF_sparse_2u_moments.jld"
+f_moms = "coefficients/SPF_2u_sparse_moments.jld"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 
