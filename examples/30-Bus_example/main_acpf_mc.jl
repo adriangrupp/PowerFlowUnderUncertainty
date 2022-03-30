@@ -1,74 +1,58 @@
 using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
 
-### 30 Bus net: Monte Carlo reference for stochastic power flow ###
-## Take samples of power values, compute PF, perform regression for all needed variables.
+"""
+30 Bus net: Monte Carlo reference for stochastic power flow
+1 Uncertainty: Bus 8 (Load 5)
+Take samples of power values, compute PF, perform regression for all needed variables.
+"""
+
 caseFile = "case30.m"
-numSamples = 100000
+numSamples = 10000
 Nunc = 1
 maxDeg = 4
 postProcessing = true
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, Monte Carlo Simulation =====\n")
 
-# Read case file, initialize network uncertainties and corresponding values
+## Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-sys = parseCaseFile(caseFile)
+network_data = readCaseFlie(caseFile)
+sys = parseNetworkData(network_data)
+# Define uncertain buses
 p = sys[:Pd][5]
 q = sys[:Qd][5]
 unc = initUncertainty_1u(p, q)
 
-solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
-
 # Dict for results on bus and branch parameters
 pf_samples = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
-    :qg => Array{Float64}(undef, sys[:Ng], 0),
-    :e => Array{Float64}(undef, sys[:Nbus], 0),
-    :f => Array{Float64}(undef, sys[:Nbus], 0),
-    :i_re => Array{Float64}(undef, sys[:Nline], 0),
-    :i_im => Array{Float64}(undef, sys[:Nline], 0)
+:qg => Array{Float64}(undef, sys[:Ng], 0),
+:e => Array{Float64}(undef, sys[:Nbus], 0),
+:f => Array{Float64}(undef, sys[:Nbus], 0),
+:i_re => Array{Float64}(undef, sys[:Nline], 0),
+:i_im => Array{Float64}(undef, sys[:Nline], 0)
 )
 
-pd = unc[:samples_bus][:, 1]
-qd = unc[:samples_bus][:, 2]
-pf_samples[:pd] = reshape(pd, length(pd), Nunc)
-pf_samples[:qd] = reshape(qd, length(qd), Nunc)
+## Initialize solver
+solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
+## Retreive samples for initialized uncertainties
+pf_samples[:pd] = unc[:samples_bus][:, 1]' # Transpose since we store as rows
+pf_samples[:qd] = unc[:samples_bus][:, 2]'
 
-
-## model(x). Wrapper function. Currently hard coded for bus 8
-# Input:  x - sampled value for active power of PQ bus.
-# Return: dict of PF outputs.
-function model(p, q)
-    network_data["load"]["5"]["pd"] = p # bus 8 / load 5
-    network_data["load"]["5"]["qd"] = q # bus 8 / load 5
-
-    pf = PowerModels.run_pf(network_data, ACRPowerModel, solver)
-
-    # check if solution was feasible
-    status = pf["termination_status"]
-    status == OPTIMAL || status == LOCALLY_SOLVED ? nothing : error("Potentially no solution found: ", status)
-
-    pg, qg = getGenPQResult(pf)
-    vr, vi = getVoltageResult(pf)
-
-    d = Dict(:pg => pg,
-        :qg => qg,
-        :e => vr, # we use e and f as convention for real and imaginary voltage parts
-        :f => vi)
-
-    currents = computeLineCurrentsDeterministic(d[:e], d[:f], sys)
-    merge!(d, currents)
-end
-
-
-# Execute the model for all samples
+## Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
 i = 1
 for x in eachrow(unc[:samples_bus])
     i % 1000 == 0 ? println("Iteration $i") : nothing
     global i += 1
 
-    res = model(x[1], x[2])
+    network_data["load"]["5"]["pd"] = x[1] # bus 8 / load 5
+    network_data["load"]["5"]["qd"] = x[2] # bus 8 / load 5
+
+    res = runModel(network_data, solver)
+    currents = computeLineCurrentsDeterministic(res[:e], res[:f], sys)
+    merge!(res, currents)
+
     pf_samples[:pg] = hcat(pf_samples[:pg], res[:pg])
     pf_samples[:qg] = hcat(pf_samples[:qg], res[:qg])
     pf_samples[:e] = hcat(pf_samples[:e], res[:e])
@@ -77,7 +61,7 @@ for x in eachrow(unc[:samples_bus])
     pf_samples[:i_im] = hcat(pf_samples[:i_im], res[:i_im])
 end
 
-# Additional polar values of current and voltage
+## Additional polar values of current and voltage
 computePolarValues!(pf_samples)
 
 println("\n Monter Calro model evaluations for $numSamples samples:")
@@ -96,7 +80,11 @@ for (key, samples) in pf_samples
     end
 end
 
-# Store moments
+println("\n Moments of bus parameters:")
+display(moments)
+println()
+
+## Store moments
 f_moms = "coefficients/SPF_MC_moments.jld"
 save(f_moms, "moments", moments)
 println("Monte Carlo moments data saved to $f_moms.\n")
