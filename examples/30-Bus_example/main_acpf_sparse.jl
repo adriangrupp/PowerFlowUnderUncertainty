@@ -42,7 +42,7 @@ for x in eachrow(unc[:samples_bus]) # each row is a sample set
 end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
-println("Compute non-intrusive PCE coefficients...\n")
+println("Compute sparse PCE coefficients...\n")
 pce = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K = 5)
 
 # Get PCE of currents, branch flows and demands
