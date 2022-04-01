@@ -12,7 +12,7 @@ function ρ_gauss(x,μ,σ)
     1 / sqrt(2*π*σ^2) * exp(-(x - μ)^2 / (2σ^2))
 end
 
-# Intrusive univariate uncertainty
+# Setup Intrusive univariate uncertainty
 function setupUncertainty(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
     @assert length(μ) == length(σ) == length(w) "inconsistent lengths of μ and σ"
     ρ(x) = sum( w[i]*ρ_gauss(x,μ[i],σ[i]) for i in 1:length(w) )
@@ -34,7 +34,7 @@ function setupUncertainty(μ::Vector,σ::Vector,w::Vector,n::Int,deg::Int)
                 :dim=>size(pd,2))
 end
 
-# Non-intrusive univariate Gaussian mixture uncertainty
+# Setup Non-intrusive univariate Gaussian mixture uncertainty
 function setupUncertaintySparse(μ::Vector, σ::Vector, w::Vector, n::Int, deg::Int)
     @assert length(μ) == length(σ) == length(w) "inconsistent lengths of μ and σ"
     ρ(x) = sum(w[i] * ρ_gauss(x, μ[i], σ[i]) for i in 1:length(w))
@@ -55,7 +55,7 @@ function setupUncertaintySparse(μ::Vector, σ::Vector, w::Vector, n::Int, deg::
         :qd => qd)
 end
 
-# Univariate general uncertainty
+# Setup for univariate general uncertainty
 function setupUncertainty(deg::Int, op::AbstractOrthoPoly)
     println("Polynomial basis:")
     showbasis(op, digits = 2) # in case you wondered
@@ -72,7 +72,7 @@ function setupUncertainty(deg::Int, op::AbstractOrthoPoly)
 end
 
 
-# Setup for 2 uncertainties (Gaussian mixture)
+# Setup for 2 uncertainties following a Gaussian mixture
 function setupUncertaintyMulti(μ::Vector, σ::Vector, w::Vector, deg::Int, numUnc::Int)
     @assert length(μ) == length(σ) == length(w) "inconsistent lengths of μ and σ"
     ρ(x) = sum(w[i] * ρ_gauss(x, μ[i], σ[i]) for i in 1:length(w))
@@ -94,86 +94,89 @@ function setupUncertaintyMulti(μ::Vector, σ::Vector, w::Vector, deg::Int, numU
         :qd => qd)
 end
 
-# Setup for multiple uncertainties - for now hard coded for 3 load buses
-function setupUncertaintyMulti(deg::Int, ops::Vector, numUnc::Int)
-    mop = MultiOrthoPoly(ops, deg)
-    println("Polynomial basis:")
-    show(mop) # in case you wondered
-    println()
-    # PCE of demands. Compute affine coefficients for each univariate unvertainty dimension and combine them
-    pd1 = assign2multi(calculateAffinePCE(mop.uni[1]), 1, mop.ind) # random load 
-    pd2 = assign2multi(calculateAffinePCE(mop.uni[2]), 2, mop.ind) # random load 
-    pd3 = assign2multi(calculateAffinePCE(mop.uni[3]), 3, mop.ind) # random load 
-    pd = vcat(pd1', pd2', pd3')
-    qd = 0.85 * copy(pd)
+# Setup for multiple uncertainties - for now hard coded for 3 load buses #TODO: fix for pv and finish
+function setupUncertaintyMulti(p::Vector, q::Vector, mop::MultiOrthoPoly, deg::Int, numUnc::Int)
+    # Sample uncertainties for NI model (samples) and postprocessing (ξ)
+    samples = [sampleMeasure(numSamples, op) for op in ops]
+    samples = hcat(samples...) # numSamples x nUnc matrix
+    ξ = [sampleMeasure(5000, op) for op in ops]  # Evaluation samples for each uncertainty
+    ξ = hcat(ξ...) # 5000 x nUnc
+
+    # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
+    pd = zeros(nUnc, mop.dim) # matrix storing all pd PCE coefficients
+    qd = zeros(nUnc, mop.dim)
+    samples_p = zeros(numSamples, nUnc) # matrix storing all p-samples
+    samples_q = zeros(numSamples, nUnc)
+    δ = 0.15 # deviation from nominal value
+    # Iterate for all uncertainties
+    for (i, op) in enumerate(ops)
+        lp, up = [1 - δ, 1 + δ] * p[i]
+        lq, uq = [1 - δ, 1 + δ] * q[i]
+        pce_p = supp2pce(α[i], β[i]) * [lp; up]
+        pce_q = supp2pce(α[i], β[i]) * [lq; uq]
+        pdi = assign2multi(pce_p, i, mop.ind) # Get sparse array assigned with first two pce coefficients to multivariate polynomial
+        qdi = assign2multi(pce_q, i, mop.ind)
+        pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
+        qd[i, :] = qdi'
+
+        samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Generate samples for each uncertainty
+        samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Generate samples for each uncertainty
+    end
 
     return Dict(:opq => mop,
         :dim => mop.dim,
-        :pd => pd,
-        :qd => qd)
+        :pd => pd, # PCE of initially uncertain buses TODO: currently this encompasses gens and loads
+        :qd => qd,
+        :samples_unc => samples,                    # samples for exogenous uncertainties
+        :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
+        :ξ => ξ)
 end
 
-
-# TODO: merge with sparse method
-# Compute the non-intrusive pce coefficients component-wise by least squares regression
-function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
+"""
+Core non-intrusive PCE method. Computes PCE coefficients component-wise with provided method.
+Can do either full or sparse non-intrusive PCE.
+"""
+function computeCoefficients(PCEmethod::Function, X::VecOrMat, busRes::Dict, unc::Dict)
     # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
     Φ = evaluate(X, unc[:opq])
     # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
-    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing 
-    
-    dim = unc[:dim]
-    pg = Array{Float64}(undef, 0, dim)
-    qg = Array{Float64}(undef, 0, dim)
-    e = Array{Float64}(undef, 0, dim)
-    f = Array{Float64}(undef, 0, dim)
-
-    # Perform least squares regression for all relevant bus variables and get their pce coefficients
-    for row in eachrow(busRes[:pg])
-        pg = vcat(pg, leastSquares(Φ, row)')
-    end
-    for row in eachrow(busRes[:qg])
-        qg = vcat(qg, leastSquares(Φ, row)')
-    end
-    for row in eachrow(busRes[:e])
-        e = vcat(e, leastSquares(Φ, row)')
-    end
-    for row in eachrow(busRes[:f])
-        f = vcat(f, leastSquares(Φ, row)')
-    end
-
-    return Dict(:pg => pg, :qg => qg, :e => e, :f => f)
-end
-
-
-# Compute the non-intrusive pce coefficients component-wise by sparse regresseion (subspace pursuit)
-function computeCoefficientsSparse(X::VecOrMat, busRes::Dict, unc::Dict; K::Int=2)
-    # Evaluate polynomial basis for all X samples. Multiply dispatched for uni and multivar
-    Φ = evaluate(X, unc[:opq])
-    # transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
     typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
 
     dim = unc[:dim]
-    pg = Array{Float64}(undef, 0, dim)
-    qg = Array{Float64}(undef, 0, dim)
-    e = Array{Float64}(undef, 0, dim)
-    f = Array{Float64}(undef, 0, dim)
+    pceRes = Dict() # PCE coefficients
+    pceErr = Dict() # LOO-error of all coefficients
 
-    # Perform sparse subspace pursuit regression for all relevant bus variables and get their PCE coefficients
-    for row in eachrow(busRes[:pg])
-        pg = vcat(pg, subspacePursuit(Φ, row, K)[1]')
-    end
-    for row in eachrow(busRes[:qg])
-        qg = vcat(qg, subspacePursuit(Φ, row, K)[1]')
-    end
-    for row in eachrow(busRes[:e])
-        e = vcat(e, subspacePursuit(Φ, row, K)[1]')
-    end
-    for row in eachrow(busRes[:f])
-        f = vcat(f, subspacePursuit(Φ, row, K)[1]')
+    # Perform least squares regression for all relevant bus parameters and get their pce coefficients
+    for (key, res) in busRes
+        pce = Array{Float64}(undef, 0, dim) # One matrix per parameter
+        err = zeros(0)
+        # Iterate for each bus
+        for row in eachrow(res)
+            coeffs = PCEmethod(Φ, row)
+            pce = vcat(pce, coeffs')
+            append!(err, empError(row, Φ, coeffs))
+        end
+        pceRes[key] = pce
+        pceErr[key] = err
     end
 
-    return Dict(:pg => pg, :qg => qg, :e => e, :f => f)
+    return pceRes, pceErr
+end
+
+"""
+Compute PCE coefficients fr a full basis via least squares regression
+"""
+function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
+    method(Φ, Y) = leastSquares(Φ, Y)
+    return computeCoefficients(method, X, busRes, unc)
+end
+
+"""
+Compute PCE coefficients fr a full basis via least squares regression
+"""
+function computeCoefficientsSparse(X::VecOrMat, busRes::Dict, unc::Dict; K::Int=2)
+    method(Φ, Y) = subspacePursuit(Φ, Y, K)[1] # First return value are the PCE coefficients
+    return computeCoefficients(method, X, busRes, unc)
 end
 
 
@@ -224,6 +227,7 @@ end
 function computeMoments(d_in::Dict, unc::Dict)
     moments = Dict{Symbol,Matrix{Float64}}()
     for (key, val) in d_in
+        println("Computing moments for $key")
         let moms = Array{Float64}(undef, 0, 2)
             for row in eachrow(val)
                 mean, std = PolyChaos.mean(row, unc[:opq]), PolyChaos.std(row, unc[:opq])
