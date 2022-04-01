@@ -7,10 +7,11 @@ Take samples of power values, compute PF, perform regression for all needed vari
 """
 
 caseFile = "case30.m"
-numSamples = 500
+numSamples = 100
 maxDeg = 3
 nUnc = 10
-postProcessing = true
+postProcessing = false
+K = 20
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 10 Uncertainties, Sparse PCE =====\n")
 
@@ -87,7 +88,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("\nCompute non-intrusive PCE coefficients...\n")
-pce = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K = 100)
+pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K = K)
 
 # Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
