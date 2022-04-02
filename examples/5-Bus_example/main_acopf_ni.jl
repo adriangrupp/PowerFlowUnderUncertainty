@@ -1,10 +1,15 @@
 using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
 
-### 5 Bus net: Non-intrusive PCE for stochastic optimal power flow ###
-## Take samples of power values, compute OPF, perform regression for all needed variables.
+"""
+5 Bus net: Non-intrusive PCE for stochastic optimal power flow
+1 Uncertianty: Bus 2 (PQ bus)
+Take samples of power values, compute OPF, perform regression for all needed variables.
+"""
+
 caseFile = "case5.m"
 numSamples = 30
 maxDeg = 3
+numUnc = 1
 postProcessing = true
 
 println("\n\t\t===== Stochastic OPF: 5 Bus case, 1 Uncertainty, non-intrusive PCE =====\n")
@@ -17,40 +22,43 @@ p = sys[:Pd][1]
 q = sys[:Qd][1]
 unc = initUncertainty_1u(p, q)
 
-## Simulation results: each row of a parameter describes a bus
+## Dict of simulation results: each row of a parameter describes a bus
 pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
     :qg => Array{Float64}(undef, sys[:Ng], 0),
     :e => Array{Float64}(undef, sys[:Nbus], 0),
     :f => Array{Float64}(undef, sys[:Nbus], 0)
 )
 
+## Initialize solver
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 5)
 
-
-# Execute the model for all samples
+## Execute the model for all samples
 println("Running $numSamples deterministic OPF calculations (model evalutations)...")
-for x in eachrow(unc[:samples_bus]) # each row is a sample set
-    network_data["load"]["1"]["pd"] = x[1] # bus 8 / load 5
-    network_data["load"]["1"]["qd"] = x[2] # bus 8 / load 5
+@time begin
+    for x in eachrow(unc[:samples_bus]) # each row is a sample set
+        network_data["load"]["1"]["pd"] = x[1] # bus 2 / load 1
+        network_data["load"]["1"]["qd"] = x[2] # bus 2 / load 1
 
-    res = runOpfModel(network_data, solver) # pass modified network data
+        res = runOpfModel(network_data, solver) # pass modified network data
 
-    pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
-    pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
-    pfRes[:e] = hcat(pfRes[:e], res[:e])
-    pfRes[:f] = hcat(pfRes[:f], res[:f])
+        pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
+        pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
+        pfRes[:e] = hcat(pfRes[:e], res[:e])
+        pfRes[:f] = hcat(pfRes[:f], res[:f])
+    end
+    print("Finished. Time:")
 end
 
-# Perform the regression for PCE coefficients on pd, qd, e and f
+## Perform the regression for PCE coefficients of pd, qd, e and f and their mean squared error (mse)
 println("Compute non-intrusive PCE coefficients...\n")
-pce = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
+pce, mse = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
 
-# Get PCE of currents, branch flows and demands
+## Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
 println("PCE coefficients:")
 display(pf_state)
 
-# Sample for parameter values, using their PCE representations
+## Sample for parameter values, using their PCE representations
 pf_samples = generateSamples(unc[:ξ], pf_state, sys, unc)
 println("\nPCE model evaluations for $(length(unc[:ξ])) samples ξ:")
 display(pf_samples)

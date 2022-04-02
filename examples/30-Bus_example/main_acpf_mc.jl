@@ -49,7 +49,7 @@ for x in eachrow(unc[:samples_bus])
     network_data["load"]["5"]["pd"] = x[1] # bus 8 / load 5
     network_data["load"]["5"]["qd"] = x[2] # bus 8 / load 5
 
-    res = runModel(network_data, solver)
+    res = runPfModel(network_data, solver)
     currents = computeLineCurrentsDeterministic(res[:e], res[:f], sys)
     merge!(res, currents)
 

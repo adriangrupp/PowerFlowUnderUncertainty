@@ -41,7 +41,7 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
         network_data["load"]["5"]["qd"] = x[nUnc+1] # second half of matrix are q values
         network_data["gen"]["6"]["pg"]  = x[2]      # bus 13 / gen 6, no q values vor generators
 
-        res = runModel(network_data, solver) # pass modified network data
+        res = runPfModel(network_data, solver) # pass modified network data
 
         pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
         pfRes[:qg] = hcat(pfRes[:qg], res[:qg])

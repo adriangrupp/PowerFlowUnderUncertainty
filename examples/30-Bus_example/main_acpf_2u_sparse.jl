@@ -41,7 +41,7 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
         network_data["load"]["5"]["qd"] = x[nUnc+1] # second half of matrix are q values
         network_data["gen"]["6"]["pg"]  = x[2]      # bus 13 / gen 6, no q values vor generators
 
-        res = runModel(network_data, solver) # pass modified network data
+        res = runPfModel(network_data, solver) # pass modified network data
 
         pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
         pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
@@ -53,7 +53,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("\nCompute sparse PCE coefficients...\n")
-pce = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K = 7)
+pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K = 7)
 
 # Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)

@@ -10,7 +10,7 @@ caseFile = "case30.m"
 numSamples = 500
 maxDeg = 3
 nUnc = 10
-postProcessing = true
+postProcessing = false
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 10 Uncertainties, non-intrusive PCE =====\n")
 
@@ -19,6 +19,10 @@ include("init_ni.jl")
 network_data = readCaseFlie(caseFile)
 sys = parseNetworkData(network_data)
 # Define uncertain buses
+# unc_load = [2,3,4,5,6,11,13,19,20]
+# unc_gen = [6]
+# p = [sys[:Pd][i] for i in unc_load]
+# P = p
 p = [sys[:Pd][2],
      sys[:Pd][3], 
      sys[:Pd][4], 
@@ -75,7 +79,7 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
         network_data["load"]["20"]["qd"] = x[nUnc+9] 
         network_data["gen"]["6"]["pg"]  = x[10]      # bus 13 / gen 6, no q values vor generators
 
-        res = runModel(network_data, solver) # pass modified network data
+        res = runPfModel(network_data, solver) # pass modified network data
 
         pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
         pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
@@ -85,16 +89,16 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
     print("Finished. Time:")
 end
 
-# Perform the regression for PCE coefficients on pd, qd, e and f
+## Perform the regression for PCE coefficients of pd, qd, e and f and their mean squared error (mse)
 println("\nCompute non-intrusive PCE coefficients...\n")
 pce, mse = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
 
-# Get additional PCE of currents, branch flows and demands
+## Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
 println("PCE coefficients:")
 display(pf_state)
 
-# Sample for parameter values, using their PCE representations
+## Sample for parameter values, using their PCE representations
 pf_samples = generateSamples(unc[:ξ], pf_state, sys, unc)
 println("\nPCE model evaluations for $(size(unc[:ξ])[1]) samples ξ:")
 display(pf_samples)

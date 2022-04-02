@@ -33,7 +33,7 @@ for x in eachrow(unc[:samples_bus]) # each row is a sample set
     network_data["load"]["5"]["pd"] = x[1] # bus 8 / load 5
     network_data["load"]["5"]["qd"] = x[2] # bus 8 / load 5
 
-    res = runModel(network_data, solver) # pass modified network data
+    res = runPfModel(network_data, solver) # pass modified network data
 
     pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
     pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
@@ -43,7 +43,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("Compute sparse PCE coefficients...\n")
-pce = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K = 5)
+pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K = 5)
 
 # Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
