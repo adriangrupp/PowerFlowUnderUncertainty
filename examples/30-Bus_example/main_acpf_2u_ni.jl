@@ -53,7 +53,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("\nCompute non-intrusive PCE coefficients...\n")
-pce = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
+pce, mse = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
 
 # Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
