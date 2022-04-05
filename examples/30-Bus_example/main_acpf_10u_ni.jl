@@ -7,8 +7,8 @@ Take samples of power values, compute PF, perform regression for all needed vari
 """
 
 caseFile = "case30.m"
-numSamples = 500
-maxDeg = 3
+numSamples = 100
+maxDeg = 2
 nUnc = 10
 postProcessing = false
 
@@ -19,30 +19,12 @@ include("init_ni.jl")
 network_data = readCaseFlie(caseFile)
 sys = parseNetworkData(network_data)
 # Define uncertain buses
-# unc_load = [2,3,4,5,6,11,13,19,20]
-# unc_gen = [6]
-# p = [sys[:Pd][i] for i in unc_load]
-# P = p
-p = [sys[:Pd][2],
-     sys[:Pd][3], 
-     sys[:Pd][4], 
-     sys[:Pd][5], 
-     sys[:Pd][6], 
-     sys[:Pd][11], 
-     sys[:Pd][13], 
-     sys[:Pd][19], 
-     sys[:Pd][20], 
-     sys[:Pg][6]]
-q = [sys[:Qd][2],
-     sys[:Qd][3], 
-     sys[:Qd][4], 
-     sys[:Qd][5], 
-     sys[:Qd][6], 
-     sys[:Qd][11], 
-     sys[:Qd][13], 
-     sys[:Qd][19], 
-     sys[:Qd][20], 
-     sys[:Qg][6]]
+unc_load = [2,3,4,5,6,11,13,19,20]
+unc_gen = 6
+p = [sys[:Pd][i] for i in unc_load]
+p = append!(p, sys[:Pg][6])
+q = [sys[:Qd][i] for i in unc_load]
+q = append!(q, sys[:Qg][6])
 unc = initUncertainty_Nu(p, q)
 
 ## Dict of simulation results: each row of a parameter describes a bus
