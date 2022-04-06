@@ -1,4 +1,4 @@
-using PowerFlowUnderUncertainty, PowerModels, Ipopt, JuMP, JLD
+using PowerFlowUnderUncertainty, PowerModels, Ipopt, JuMP, TimerOutputs, JLD
 
 """
 30 Bus net: Sparse PCE for stochastic power flow.
@@ -52,9 +52,12 @@ pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
 ## Initialize solver
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
+## Timer for profiling
+to = TimerOutput()
+
 ## Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
-@time begin
+@timeit to "Model evaluations" begin
     for x in eachrow(unc[:samples_bus]) # each row is a sample set
         network_data["load"]["2"]["pd"] = x[1]      # bus 3 / load 2
         network_data["load"]["2"]["qd"] = x[nUnc+1] # second half of matrix are q values
@@ -83,12 +86,14 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
         pfRes[:e] = hcat(pfRes[:e], res[:e])
         pfRes[:f] = hcat(pfRes[:f], res[:f])
     end
-    print("Finished. Time:")
 end
+println("Finished.")
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("\nCompute non-intrusive PCE coefficients...\n")
-pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K = K)
+@timeit to "PCE Regression" begin
+    pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K = K)
+end
 
 # Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
@@ -110,11 +115,17 @@ save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
 # Compute and store moments from PCE coefficients
-moments = computeMoments(pf_state, unc)
+@timeit to "Moments calculation" begin
+    moments = computeMoments(pf_state, unc)
+end
+
 f_moms = "coefficients/SPF_10u_sparse_moments.jld"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 
+## Show timing stats
+println("Timing resutls:")
+show(to)
 
 
 ### POST PROCESSING ###

@@ -1,4 +1,4 @@
-using PowerFlowUnderUncertainty, PowerModels, Ipopt, JuMP, JLD
+using PowerFlowUnderUncertainty, PowerModels, Ipopt, JuMP, TimerOutputs, JLD
 
 """
 30 Bus net: Non-intrusive PCE for stochastic power flow.
@@ -7,7 +7,7 @@ Take samples of power values, compute PF, perform regression for all needed vari
 """
 
 caseFile = "case30.m"
-numSamples = 50
+numSamples = 200
 maxDeg = 2
 nUnc = 10
 postProcessing = false
@@ -20,7 +20,7 @@ network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
 
 # Define uncertain buses
-unc_load = [2,3,4,5,6,11,13,19,20]
+unc_load = [2, 3, 4, 5, 6, 11, 13, 19, 20]
 unc_gen = 6
 p = [sys[:Pd][i] for i in unc_load]
 append!(p, sys[:Pg][6])
@@ -39,29 +39,32 @@ pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
 ## Initialize solver
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
+## Timer for profiling
+to = TimerOutput()
+
 ## Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
-@time begin
+@timeit to "Model evaluations" begin
     for x in eachrow(unc[:samples_bus]) # each row is a sample set
         network_data["load"]["2"]["pd"] = x[1]      # bus 3 / load 2
         network_data["load"]["2"]["qd"] = x[nUnc+1] # second half of matrix are q values
-        network_data["load"]["3"]["pd"] = x[2]      
-        network_data["load"]["3"]["qd"] = x[nUnc+2] 
-        network_data["load"]["4"]["pd"] = x[3]      
-        network_data["load"]["4"]["qd"] = x[nUnc+3] 
+        network_data["load"]["3"]["pd"] = x[2]
+        network_data["load"]["3"]["qd"] = x[nUnc+2]
+        network_data["load"]["4"]["pd"] = x[3]
+        network_data["load"]["4"]["qd"] = x[nUnc+3]
         network_data["load"]["5"]["pd"] = x[4]      # bus 8 / load 5
-        network_data["load"]["5"]["qd"] = x[nUnc+4] 
-        network_data["load"]["6"]["pd"] = x[5]      
-        network_data["load"]["6"]["qd"] = x[nUnc+5] 
-        network_data["load"]["11"]["pd"] = x[6]      
-        network_data["load"]["11"]["qd"] = x[nUnc+6] 
-        network_data["load"]["13"]["pd"] = x[7]      
-        network_data["load"]["13"]["qd"] = x[nUnc+7] 
-        network_data["load"]["19"]["pd"] = x[8]      
-        network_data["load"]["19"]["qd"] = x[nUnc+8] 
-        network_data["load"]["20"]["pd"] = x[9]      
-        network_data["load"]["20"]["qd"] = x[nUnc+9] 
-        network_data["gen"]["6"]["pg"]  = x[10]      # bus 13 / gen 6, no q values vor generators
+        network_data["load"]["5"]["qd"] = x[nUnc+4]
+        network_data["load"]["6"]["pd"] = x[5]
+        network_data["load"]["6"]["qd"] = x[nUnc+5]
+        network_data["load"]["11"]["pd"] = x[6]
+        network_data["load"]["11"]["qd"] = x[nUnc+6]
+        network_data["load"]["13"]["pd"] = x[7]
+        network_data["load"]["13"]["qd"] = x[nUnc+7]
+        network_data["load"]["19"]["pd"] = x[8]
+        network_data["load"]["19"]["qd"] = x[nUnc+8]
+        network_data["load"]["20"]["pd"] = x[9]
+        network_data["load"]["20"]["qd"] = x[nUnc+9]
+        network_data["gen"]["6"]["pg"] = x[10]      # bus 13 / gen 6, no q values vor generators
 
         res = runPfModel(network_data, solver) # pass modified network data
 
@@ -70,12 +73,14 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
         pfRes[:e] = hcat(pfRes[:e], res[:e])
         pfRes[:f] = hcat(pfRes[:f], res[:f])
     end
-    print("Finished. Time:")
+    print("Finished.")
 end
 
 ## Perform the regression for PCE coefficients of pd, qd, e and f and their mean squared error (mse)
 println("\nCompute non-intrusive PCE coefficients...\n")
-pce, mse = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
+@timeit to "PCE Regression" begin
+    pce, mse = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
+end
 
 ## Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
@@ -97,11 +102,17 @@ save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
 # Compute and store moments from PCE coefficients
-moments = computeMoments(pf_state, unc)
+@timeit to "Moments calculation" begin
+    moments = computeMoments(pf_state, unc)
+end
+
 f_moms = "coefficients/SPF_10u_NI_moments.jld"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 
+## Show timing stats
+println("Timing resutls:")
+show(to)
 
 
 ### POST PROCESSING ###
