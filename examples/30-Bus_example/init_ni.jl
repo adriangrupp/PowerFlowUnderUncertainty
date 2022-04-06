@@ -73,9 +73,7 @@ function initUncertainty_2u(p::Vector, q::Vector)
     ξ = hcat(ξ...) # 5000 x nUnc
 
     # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
-    Φ = evaluate(samples, mop)
-    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
-    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
+    Φ = evaluate(samples, mop)' # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
 
     # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
     pd = zeros(nUnc, mop.dim) # matrix storing all pd PCE coefficients
@@ -132,9 +130,7 @@ function initUncertainty_Nu(p::Vector, q::Vector)
     ξ = hcat(ξ...) # 5000 x nUnc
     
     # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
-    Φ = evaluate(samples, mop)
-    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
-    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
+    Φ = evaluate(samples, mop)' # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
 
     # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
     pd = zeros(nUnc, mop.dim) # matrix storing all pd PCE coefficients
