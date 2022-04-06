@@ -174,17 +174,6 @@ function computeCoefficientsSparse(X::VecOrMat, busRes::Dict, unc::Dict; K::Int=
     return computeCoefficients(method, X, busRes, unc)
 end
 
-"""
-Take the experimental design and the computed PCE coefficients of each parameter and calculate the mean squared error
-"""
-function computeMSE(unc::Dict, pce::Dict)
-    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
-    Φ = evaluate(X, unc[:opq])
-    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
-    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
-end
-
-
 function sampleFromGaussianMixture(n::Int,μ::Vector{},σ::Vector{},w::Vector{})
     X = Float64[]
     for i in 1:n
