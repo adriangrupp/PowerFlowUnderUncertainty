@@ -33,7 +33,7 @@ for x in eachrow(unc[:samples_bus]) # each row is a sample set
     network_data["load"]["5"]["pd"] = x[1] # bus 8 / load 5
     network_data["load"]["5"]["qd"] = x[2] # bus 8 / load 5
 
-    res = runPf
+    res = runPfModel(network_data, solver) # pass modified network data
     pfRes[:pg] = hcat(pfRes[:pg], res[:pg])
     pfRes[:qg] = hcat(pfRes[:qg], res[:qg])
     pfRes[:e] = hcat(pfRes[:e], res[:e])
