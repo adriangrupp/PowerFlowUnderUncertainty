@@ -1,11 +1,13 @@
-export runPfModel,
+export readCaseFile,
+parseNetworkData,
+runPfModel,
 runOpfModel
 
 
 """
 Read in network data
 """
-function readCaseFlie(caseFile)
+function readCaseFile(caseFile::String)
     PowerModels.logger_config!("error") # Suppress warnings on phase angles
     network_data = PowerModels.parse_file(caseFile)
     network_data = make_basic_network(network_data) # basuc network: no dc lines, switches, inactive components, ...

@@ -7,7 +7,7 @@ Take samples of power values, compute PF, perform regression for all needed vari
 """
 
 caseFile = "case30.m"
-numSamples = 100
+numSamples = 50
 maxDeg = 2
 nUnc = 10
 postProcessing = false
@@ -16,15 +16,17 @@ println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 10 Uncertainties, non-i
 
 ## Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-network_data = readCaseFlie(caseFile)
+network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
+
 # Define uncertain buses
 unc_load = [2,3,4,5,6,11,13,19,20]
 unc_gen = 6
 p = [sys[:Pd][i] for i in unc_load]
-p = append!(p, sys[:Pg][6])
+append!(p, sys[:Pg][6])
 q = [sys[:Qd][i] for i in unc_load]
-q = append!(q, sys[:Qg][6])
+append!(q, sys[:Qg][6])
+
 unc = initUncertainty_Nu(p, q)
 
 ## Dict of simulation results: each row of a parameter describes a bus

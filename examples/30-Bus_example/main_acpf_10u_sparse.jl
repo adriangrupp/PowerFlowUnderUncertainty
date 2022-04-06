@@ -7,17 +7,17 @@ Take samples of power values, compute PF, perform regression for all needed vari
 """
 
 caseFile = "case30.m"
-numSamples = 100
-maxDeg = 3
+numSamples = 50
+maxDeg = 2
 nUnc = 10
 postProcessing = false
-K = 20
+K = 50
 
 println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 10 Uncertainties, Sparse PCE =====\n")
 
 ## Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-network_data = readCaseFlie(caseFile)
+network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
 # Define uncertain buses
 p = [sys[:Pd][2],

@@ -2,6 +2,17 @@
 using Random, PolyChaos
 Random.seed!(1234)
 
+# Read and set up network parameters
+network_data = readCaseFile(caseFile)
+sys = parseNetworkData(network_data)
+
+# Dict of simulation results: each row of a parameter describes a bus
+pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
+    :qg => Array{Float64}(undef, sys[:Ng], 0),
+    :e => Array{Float64}(undef, sys[:Nbus], 0),
+    :f => Array{Float64}(undef, sys[:Nbus], 0)
+)
+
 """
 Transformation matrix from β-distribution to affine PCE coefficients
     `[ x_0; x_1 ] = supp2pce(α,β)*[ x_lb; x_ub ]`

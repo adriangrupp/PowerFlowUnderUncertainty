@@ -11,7 +11,7 @@ println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 1 Uncertainty, non-intr
 
 # Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-network_data = readCaseFlie(caseFile)
+network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
 p = sys[:Pd][5]
 q = sys[:Qd][5]
