@@ -27,9 +27,10 @@ function parseNetworkData(network_data)
     Zbr = calc_basic_branch_series_impedance(network_data)
     Ybr = Diagonal(inv.(Zbr)) # branch admittance
 
-    # P and Q values for load buses
+    # P and Q values for load and generator buses separately
     # load_idx = getLoadIndices(network_data)
     Pload, Qload = getLoadPQ(network_data)
+    Pg, Qg = getGenPQ(network_data)
 
     # P and Q values for bus injection of all buses (these are not nec. PQ buses or contain loads)
     # injection = calc_basic_bus_injection(network_data)
@@ -48,6 +49,8 @@ function parseNetworkData(network_data)
         :Ybr => Ybr,
         :Pd => Pload,
         :Qd => Qload,
+        :Pg => Pg,
+        :Qg => Qg,
         :costquad => costquad,
         :costlin => costlin
     )
