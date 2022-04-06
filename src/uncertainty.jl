@@ -137,11 +137,6 @@ Core non-intrusive PCE method. Computes PCE coefficients component-wise with pro
 Can do either full or sparse non-intrusive PCE.
 """
 function computeCoefficients(PCEmethod::Function, X::VecOrMat, busRes::Dict, unc::Dict)
-    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
-    Φ = evaluate(X, unc[:opq])
-    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
-    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
-
     dim = unc[:dim]
     pceRes = Dict() # PCE coefficients
     pceErr = Dict() # LOO-error of all coefficients
@@ -152,9 +147,9 @@ function computeCoefficients(PCEmethod::Function, X::VecOrMat, busRes::Dict, unc
         err = zeros(0)
         # Iterate for each bus
         for row in eachrow(res)
-            coeffs = PCEmethod(Φ, row)
+            coeffs = PCEmethod(unc[:Φ], row)
             pce = vcat(pce, coeffs')
-            append!(err, empError(row, Φ, coeffs))
+            append!(err, looError(row, unc[:Φ], coeffs))
         end
         pceRes[key] = pce
         pceErr[key] = err
@@ -177,6 +172,16 @@ Compute PCE coefficients fr a full basis via least squares regression
 function computeCoefficientsSparse(X::VecOrMat, busRes::Dict, unc::Dict; K::Int=2)
     method(Φ, Y) = subspacePursuit(Φ, Y, K)[1] # First return value are the PCE coefficients
     return computeCoefficients(method, X, busRes, unc)
+end
+
+"""
+Take the experimental design and the computed PCE coefficients of each parameter and calculate the mean squared error
+"""
+function computeMSE(unc::Dict, pce::Dict)
+    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
+    Φ = evaluate(X, unc[:opq])
+    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
+    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
 end
 
 

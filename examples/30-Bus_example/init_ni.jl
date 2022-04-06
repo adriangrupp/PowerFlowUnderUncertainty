@@ -37,13 +37,17 @@ function initUncertainty_1u(p, q)
     samples_q = samples * (uq - lq) .+ lq
     ξ = sampleMeasure(5000, op)  # Evaluation samples
 
+    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
+    Φ = evaluate(samples, op)
+    
     return Dict(:opq => op,
         :dim => op.deg + 1,
         :pd => pd,
         :qd => qd,
         :samples_unc => samples,    # samples for exogenous uncertainty
         :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainty
-        :ξ => ξ)
+        :ξ => ξ,
+        :Φ => Φ)                                    # Regression matrix
 end
 
 """
@@ -53,8 +57,8 @@ function initUncertainty_2u(p::Vector, q::Vector)
     # Setup multivariate basis
     α = [2, 3]
     β = [4.666, 3]
-    op1 = Beta01OrthoPoly(maxDeg, α[1], β[1]; Nrec = maxDeg+2)
-    op2 = Beta01OrthoPoly(maxDeg, α[2], β[2]; Nrec = maxDeg+2)
+    op1 = Beta01OrthoPoly(maxDeg, α[1], β[1]; Nrec=maxDeg + 2)
+    op2 = Beta01OrthoPoly(maxDeg, α[2], β[2]; Nrec=maxDeg + 2)
     ops = [op1, op2]
 
     mop = MultiOrthoPoly(ops, maxDeg)
@@ -68,11 +72,16 @@ function initUncertainty_2u(p::Vector, q::Vector)
     ξ = [sampleMeasure(5000, op) for op in ops]  # Evaluation samples for each uncertainty
     ξ = hcat(ξ...) # 5000 x nUnc
 
+    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
+    Φ = evaluate(samples, mop)
+    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
+    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
+
     # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
     pd = zeros(nUnc, mop.dim) # matrix storing all pd PCE coefficients
     qd = zeros(nUnc, mop.dim)
     samples_p = zeros(numSamples, nUnc) # matrix storing all p-samples
-    samples_q = zeros(numSamples, nUnc) 
+    samples_q = zeros(numSamples, nUnc)
     δ = 0.15 # deviation from nominal value
     # Iterate for all uncertainties
     for (i, op) in enumerate(ops)
@@ -80,23 +89,24 @@ function initUncertainty_2u(p::Vector, q::Vector)
         lq, uq = [1 - δ, 1 + δ] * q[i]
         pce_q = supp2pce(α[i], β[i]) * [lq; uq] # need to do this due to 0/0 support
         pce_p = convert2affinePCE(lp, up, op)
-    
+
         pdi = assign2multi(pce_p, i, mop.ind) # Get sparse array assigned with first two pce coefficients to multivariate polynomial
         qdi = assign2multi(pce_q, i, mop.ind)
         pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
         qd[i, :] = qdi'
-    
+
         samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Generate samples for each uncertainty
         samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Generate samples for each uncertainty
     end
 
     return Dict(:opq => mop,
-            :dim => mop.dim,
-            :pd => pd, # PCE of initially uncertain buses TODO: currently this encompasses gens and loads
-            :qd => qd,
-            :samples_unc => samples,                    # samples for exogenous uncertainties
-            :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
-            :ξ => ξ)
+        :dim => mop.dim,
+        :pd => pd, # PCE of initially uncertain buses TODO: currently this encompasses gens and loads
+        :qd => qd,
+        :samples_unc => samples,                    # samples for exogenous uncertainties
+        :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
+        :ξ => ξ,
+        :Φ => Φ)                                    # Regression matrix
 end
 
 """
@@ -108,7 +118,7 @@ function initUncertainty_Nu(p::Vector, q::Vector)
     # Setup multivariate basis
     α = [2, 3, 3, 4, 2, 1, 5, 3, 2, 3]
     β = [4.666, 3, 2, 2, 3, 1, 4, 4, 3, 3]
-    ops = [Beta01OrthoPoly(maxDeg, α[i], β[i]; Nrec = maxDeg+2) for i in 1:n]
+    ops = [Beta01OrthoPoly(maxDeg, α[i], β[i]; Nrec=maxDeg + 2) for i in 1:n]
 
     mop = MultiOrthoPoly(ops, maxDeg)
     println("Polynomial basis:")
@@ -120,12 +130,17 @@ function initUncertainty_Nu(p::Vector, q::Vector)
     samples = hcat(samples...) # numSamples x nUnc matrix
     ξ = [sampleMeasure(5000, op) for op in ops]  # Evaluation samples for each uncertainty
     ξ = hcat(ξ...) # 5000 x nUnc
+    
+    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
+    Φ = evaluate(samples, mop)
+    # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
+    typeof(unc[:opq]) <: MultiOrthoPoly ? Φ = Φ' : nothing
 
     # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
     pd = zeros(nUnc, mop.dim) # matrix storing all pd PCE coefficients
     qd = zeros(nUnc, mop.dim)
     samples_p = zeros(numSamples, nUnc) # matrix storing all p-samples
-    samples_q = zeros(numSamples, nUnc) 
+    samples_q = zeros(numSamples, nUnc)
     δ = 0.15 # deviation from nominal value
     # Iterate for all uncertainties
     for (i, op) in enumerate(ops)
@@ -137,16 +152,17 @@ function initUncertainty_Nu(p::Vector, q::Vector)
         qdi = assign2multi(pce_q, i, mop.ind)
         pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
         qd[i, :] = qdi'
-    
+
         samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Generate samples for each uncertainty
         samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Generate samples for each uncertainty
     end
 
     return Dict(:opq => mop,
-            :dim => mop.dim,
-            :pd => pd, # PCE of initially uncertain buses TODO: currently this encompasses gens and loads
-            :qd => qd,
-            :samples_unc => samples,                    # samples for exogenous uncertainties
-            :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
-            :ξ => ξ)
+        :dim => mop.dim,
+        :pd => pd,                                  # PCE of initially uncertain buses TODO: currently this encompasses gens and loads
+        :qd => qd,
+        :samples_unc => samples,                    # samples for exogenous uncertainties
+        :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
+        :ξ => ξ,                                    # Samples for post processing, i.e., histrogram plots
+        :Φ => Φ)                                    # Regression matrix
 end
