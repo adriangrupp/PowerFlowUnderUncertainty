@@ -20,26 +20,26 @@ network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
 # Define uncertain buses
 p = [sys[:Pd][2],
-     sys[:Pd][3], 
-     sys[:Pd][4], 
-     sys[:Pd][5], 
-     sys[:Pd][6], 
-     sys[:Pd][11], 
-     sys[:Pd][13], 
-     sys[:Pd][19], 
-     sys[:Pd][20], 
-     sys[:Pg][6]]
+    sys[:Pd][3],
+    sys[:Pd][4],
+    sys[:Pd][5],
+    sys[:Pd][6],
+    sys[:Pd][11],
+    sys[:Pd][13],
+    sys[:Pd][19],
+    sys[:Pd][20],
+    sys[:Pg][6]]
 q = [sys[:Qd][2],
-     sys[:Qd][3], 
-     sys[:Qd][4], 
-     sys[:Qd][5], 
-     sys[:Qd][6], 
-     sys[:Qd][11], 
-     sys[:Qd][13], 
-     sys[:Qd][19], 
-     sys[:Qd][20], 
-     sys[:Qg][6]]
-unc = initUncertainty_Nu(p, q)
+    sys[:Qd][3],
+    sys[:Qd][4],
+    sys[:Qd][5],
+    sys[:Qd][6],
+    sys[:Qd][11],
+    sys[:Qd][13],
+    sys[:Qd][19],
+    sys[:Qd][20],
+    sys[:Qg][6]]
+unc = initUncertainty_Nu(p, q, numSamples)
 
 # Dict for results on bus and branch parameters
 pf_samples = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
@@ -67,23 +67,23 @@ i = 1
 
         network_data["load"]["2"]["pd"] = x[1]      # bus 3 / load 2
         network_data["load"]["2"]["qd"] = x[nUnc+1] # second half of matrix are q values
-        network_data["load"]["3"]["pd"] = x[2]      
-        network_data["load"]["3"]["qd"] = x[nUnc+2] 
-        network_data["load"]["4"]["pd"] = x[3]      
-        network_data["load"]["4"]["qd"] = x[nUnc+3] 
+        network_data["load"]["3"]["pd"] = x[2]
+        network_data["load"]["3"]["qd"] = x[nUnc+2]
+        network_data["load"]["4"]["pd"] = x[3]
+        network_data["load"]["4"]["qd"] = x[nUnc+3]
         network_data["load"]["5"]["pd"] = x[4]      # bus 8 / load 5
-        network_data["load"]["5"]["qd"] = x[nUnc+4] 
-        network_data["load"]["6"]["pd"] = x[5]      
-        network_data["load"]["6"]["qd"] = x[nUnc+5] 
-        network_data["load"]["11"]["pd"] = x[6]      
-        network_data["load"]["11"]["qd"] = x[nUnc+6] 
-        network_data["load"]["13"]["pd"] = x[7]      
-        network_data["load"]["13"]["qd"] = x[nUnc+7] 
-        network_data["load"]["19"]["pd"] = x[8]      
-        network_data["load"]["19"]["qd"] = x[nUnc+8] 
-        network_data["load"]["20"]["pd"] = x[9]      
-        network_data["load"]["20"]["qd"] = x[nUnc+9] 
-        network_data["gen"]["6"]["pg"]  = x[10]      # bus 13 / gen 6, no q values vor generators
+        network_data["load"]["5"]["qd"] = x[nUnc+4]
+        network_data["load"]["6"]["pd"] = x[5]
+        network_data["load"]["6"]["qd"] = x[nUnc+5]
+        network_data["load"]["11"]["pd"] = x[6]
+        network_data["load"]["11"]["qd"] = x[nUnc+6]
+        network_data["load"]["13"]["pd"] = x[7]
+        network_data["load"]["13"]["qd"] = x[nUnc+7]
+        network_data["load"]["19"]["pd"] = x[8]
+        network_data["load"]["19"]["qd"] = x[nUnc+8]
+        network_data["load"]["20"]["pd"] = x[9]
+        network_data["load"]["20"]["qd"] = x[nUnc+9]
+        network_data["gen"]["6"]["pg"] = x[10]      # bus 13 / gen 6, no q values vor generators
 
         res = runPfModel(network_data, solver)
         currents = computeLineCurrentsDeterministic(res[:e], res[:f], sys)

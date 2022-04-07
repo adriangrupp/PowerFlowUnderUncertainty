@@ -13,7 +13,7 @@ end
 """
 Initialization for 1 uncertainty (β-distributed)
 """
-function initUncertainty_1u(p, q)
+function initUncertainty_1u(p, q, numSamples::Int)
     #shape parameters
     α = 2
     β = 4.666
@@ -53,7 +53,7 @@ end
 """
  Initialization for 2 uncertainties (2 β-distributions)
 """
-function initUncertainty_2u(p::Vector, q::Vector)
+function initUncertainty_2u(p::Vector, q::Vector, numSamples::Int)
     # Setup multivariate basis
     α = [2, 3]
     β = [4.666, 3]
@@ -110,7 +110,7 @@ end
 """
  Initialization for various uncertainties (β-distributions)
 """
-function initUncertainty_Nu(p::Vector, q::Vector)
+function initUncertainty_Nu(p::Vector, q::Vector, numSamples::Int)
     n = 10
 
     # Setup multivariate basis

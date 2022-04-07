@@ -21,7 +21,7 @@ sys = parseNetworkData(network_data)
 # Define uncertain buses
 p = [sys[:Pd][5], sys[:Pg][6]]
 q = [sys[:Qd][5], sys[:Qg][6]]
-unc = initUncertainty_2u(p, q)
+unc = initUncertainty_Nu(p, q, numSamples)
 
 ## Dict of simulation results: each row of a parameter describes a bus
 pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
@@ -39,7 +39,7 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
     for x in eachrow(unc[:samples_bus]) # each row is a sample set
         network_data["load"]["5"]["pd"] = x[1]      # bus 8 / load 5
         network_data["load"]["5"]["qd"] = x[nUnc+1] # second half of matrix are q values
-        network_data["gen"]["6"]["pg"]  = x[2]      # bus 13 / gen 6, no q values vor generators
+        network_data["gen"]["6"]["pg"] = x[2]      # bus 13 / gen 6, no q values vor generators
 
         res = runPfModel(network_data, solver) # pass modified network data
 
@@ -53,7 +53,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("\nCompute sparse PCE coefficients...\n")
-pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K = 7)
+pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K=7)
 
 # Get additional PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)

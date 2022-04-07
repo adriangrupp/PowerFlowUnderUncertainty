@@ -21,15 +21,15 @@ sys = parseNetworkData(network_data)
 # Define uncertain buses
 p = [sys[:Pd][5], sys[:Pg][6]]
 q = [sys[:Qd][5], sys[:Qg][6]]
-unc = initUncertainty_2u(p, q)
+unc = initUncertainty_Nu(p, q, numSamples)
 
 # Dict for results on bus and branch parameters
 pf_samples = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
-:qg => Array{Float64}(undef, sys[:Ng], 0),
-:e => Array{Float64}(undef, sys[:Nbus], 0),
-:f => Array{Float64}(undef, sys[:Nbus], 0),
-:i_re => Array{Float64}(undef, sys[:Nline], 0),
-:i_im => Array{Float64}(undef, sys[:Nline], 0)
+    :qg => Array{Float64}(undef, sys[:Ng], 0),
+    :e => Array{Float64}(undef, sys[:Nbus], 0),
+    :f => Array{Float64}(undef, sys[:Nbus], 0),
+    :i_re => Array{Float64}(undef, sys[:Nline], 0),
+    :i_im => Array{Float64}(undef, sys[:Nline], 0)
 )
 
 ## Initialize solver

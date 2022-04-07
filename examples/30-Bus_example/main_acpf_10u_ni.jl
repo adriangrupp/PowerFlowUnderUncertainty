@@ -27,7 +27,7 @@ append!(p, sys[:Pg][6])
 q = [sys[:Qd][i] for i in unc_load]
 append!(q, sys[:Qg][6])
 
-unc = initUncertainty_Nu(p, q)
+unc = initUncertainty_Nu(p, q, numSamples)
 
 ## Dict of simulation results: each row of a parameter describes a bus
 pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
@@ -73,8 +73,8 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
         pfRes[:e] = hcat(pfRes[:e], res[:e])
         pfRes[:f] = hcat(pfRes[:f], res[:f])
     end
-    print("Finished.")
 end
+print("Finished.")
 
 ## Perform the regression for PCE coefficients of pd, qd, e and f and their mean squared error (mse)
 println("\nCompute non-intrusive PCE coefficients...\n")

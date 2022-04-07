@@ -15,7 +15,7 @@ network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
 p = sys[:Pd][5]
 q = sys[:Qd][5]
-unc = initUncertainty_1u(p, q)
+unc = initUncertainty_Nu(p, q, numSamples)
 
 ## Simulation results: each row of a parameter describes a bus
 pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
@@ -43,7 +43,7 @@ end
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
 println("Compute sparse PCE coefficients...\n")
-pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K = 5)
+pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K=5)
 
 # Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
@@ -75,18 +75,18 @@ println("PCE moments data saved to $f_moms.\n")
 ### POST PROCESSING ###
 if postProcessing
     mycolor = "red"
-    plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/sparse"; fignum = 1 + 10, color = mycolor)
-    plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/sparse"; fignum = 2 + 10, color = mycolor)
+    plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/sparse"; fignum=1 + 10, color=mycolor)
+    plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/sparse"; fignum=2 + 10, color=mycolor)
 
-    plotHistogram_9in9(pf_samples[:e][1:9, :], "e1", "./plots/sparse"; fignum = 3 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:e][10:18, :], "e2", "./plots/sparse"; fignum = 4 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:e][19:27, :], "e3", "./plots/sparse"; fignum = 5 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:e][28:30, :], "e4", "./plots/sparse"; fignum = 6 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:e][1:9, :], "e1", "./plots/sparse"; fignum=3 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:e][10:18, :], "e2", "./plots/sparse"; fignum=4 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:e][19:27, :], "e3", "./plots/sparse"; fignum=5 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:e][28:30, :], "e4", "./plots/sparse"; fignum=6 + 10, color=mycolor)
 
-    plotHistogram_9in9(pf_samples[:f][1:9, :], "f1", "./plots/sparse"; fignum = 7 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:f][10:18, :], "f2", "./plots/sparse"; fignum = 8 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/sparse"; fignum = 9 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/sparse"; fignum = 10 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:f][1:9, :], "f1", "./plots/sparse"; fignum=7 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:f][10:18, :], "f2", "./plots/sparse"; fignum=8 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/sparse"; fignum=9 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/sparse"; fignum=10 + 10, color=mycolor)
 
-    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/sparse"; fignum = 0 + 10, color = mycolor)
+    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/sparse"; fignum=0 + 10, color=mycolor)
 end
