@@ -5,7 +5,9 @@ export plotHistogram,
     plotHistogram_nodal,
     plotHistogram_branch,
     plotHistogram_6in9,
-    plotHistogram_9in9
+    plotHistogram_9in9,
+
+    plotSampleVsError
 
 function plotHistogram(x::Vector; kwargs...)
     bins = haskey(kwargs, :bins) ? kwargs[:bins] : 70
@@ -124,4 +126,42 @@ function plotHistogram_9in9(m::Matrix, name::String, dir::String; kwargs...)
     println("Plotting: $dir/$name.pdf")
     savefig("$dir/$name.pdf")
     clf()
+end
+
+
+### Plotting of error curves ###
+"""
+Takes a vector of numer of samples (numSamp) and plots errors per bus (errors).
+Types of errors are moments errors or MSE (errorType).
+Plot diagram for all 
+"""
+function plotSampleVsError(numSamp::Vector, errorsNi::Matrix, errorsSparse::Matrix, busParam::String, errorType::String, dir::String)
+    xPoints = numSamp
+    for (i, col) in enumerate(eachcol(errorsNi))
+        errMeanNi = [el[1] for el in col]
+        errStdNi = [el[2] for el in col]
+        colSparse = errorsSparse[:, i]
+        errMeanSparse = [el[1] for el in colSparse]
+        errStdSprase = [el[2] for el in colSparse]
+    
+        yPoints1 = errMeanNi
+        yPoints2 = errMeanSparse
+        println(errMeanNi)
+        println(errMeanSparse)
+    
+        title("Parameter: $busParam, Bus $i, $errorType Error")
+        xlabel("numSamples")
+        xticks(numSamp, rotation=70)
+        ylabel("Error_$(errorType)")
+        yscale("log")
+    
+        plot(xPoints, yPoints1, linestyle="dashed", marker="^", ms="8", mec="r", label="non-intrusive")
+        plot(xPoints, yPoints2, linestyle="dashed", marker="^", ms="8", mec="r", label="sparse")
+        legend()
+    
+        name = "$(busParam)_$(i)_$(errorType)_mean"
+        println("Plotting: $dir/$name.pdf")
+        savefig("$dir/$name.pdf")
+        clf()
+    end
 end
