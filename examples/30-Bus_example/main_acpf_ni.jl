@@ -1,4 +1,4 @@
-using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
+using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD2
 
 ### 30 Bus net: Non-intrusive PCE for stochastic power flow ###
 ## Take samples of power values, compute PF, perform regression for all needed variables.
@@ -59,13 +59,13 @@ println()
 ### Store data for evaluation ###
 
 # PCE coefficients
-f_coeff = "coefficients/SPF_NI.jld"
+f_coeff = "coefficients/SPF_NI.jld2"
 save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
 # Compute and store moments from PCE coefficients
 moments = computeMoments(pf_state, unc)
-f_moms = "coefficients/SPF_NI_moments.jld"
+f_moms = "coefficients/SPF_NI_moments.jld2"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 

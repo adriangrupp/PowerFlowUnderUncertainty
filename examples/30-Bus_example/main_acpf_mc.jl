@@ -1,4 +1,4 @@
-using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
+using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD2
 
 """
 30 Bus net: Monte Carlo reference for stochastic power flow
@@ -85,7 +85,7 @@ display(moments)
 println()
 
 ## Store moments
-f_moms = "coefficients/SPF_MC_moments.jld"
+f_moms = "coefficients/SPF_MC_moments.jld2"
 save(f_moms, "moments", moments)
 println("Monte Carlo moments data saved to $f_moms.\n")
 

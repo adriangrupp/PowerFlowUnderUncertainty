@@ -1,4 +1,4 @@
-using PowerFlowUnderUncertainty, PowerModels, Ipopt, JuMP, TimerOutputs, JLD
+using PowerFlowUnderUncertainty, PowerModels, Ipopt, JuMP, TimerOutputs, JLD2
 
 """
 30 Bus net: Sparse PCE for stochastic power flow.
@@ -110,7 +110,7 @@ println()
 ### Store data for evaluation ###
 
 # PCE coefficients
-f_coeff = "coefficients/SPF_10u_sparse.jld"
+f_coeff = "coefficients/SPF_10u_sparse.jld2"
 save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
@@ -119,7 +119,7 @@ println("PCE coefficients data saved to $f_coeff.\n")
     moments = computeMoments(pf_state, unc)
 end
 
-f_moms = "coefficients/SPF_10u_sparse_moments.jld"
+f_moms = "coefficients/SPF_10u_sparse_moments.jld2"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 
