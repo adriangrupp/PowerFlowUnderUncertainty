@@ -57,6 +57,9 @@ solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 pf_samples[:pd] = unc[:samples_bus][:, 1:nUnc]' # Transpose since we store as rows
 pf_samples[:qd] = unc[:samples_bus][:, nUnc+1:end]'
 
+## Timer for profiling
+to = TimerOutput()
+
 ## Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
 i = 1

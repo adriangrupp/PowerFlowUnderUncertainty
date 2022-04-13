@@ -26,6 +26,8 @@ pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
 
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
+## Timer for profiling
+to = TimerOutput()
 
 # Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
