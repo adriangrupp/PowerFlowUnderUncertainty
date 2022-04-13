@@ -67,7 +67,7 @@ function compareToMCMoments(mcFile::String, pceFile::String)
     for (key, val) in momentsMC
         if haskey(momentsPCE, key) && key == :e
             mat1, mat2 = val, momentsPCE[key] # Moments are stored as matrices
-            diff = round.(mat1 - mat2, digits=10) # difference between all entries
+            diff = abs.(round.(mat1 - mat2, digits=10)) # difference between all entries
             # compare diff rowwise, i.e. for each bus
             for (i, row) in enumerate(eachrow(diff))
                 println("($key, $i)  \t Error mean:\t", row[1], "\t\tError std:\t", row[2])
@@ -109,7 +109,7 @@ function numSampVsError(mcFile::String, pceFile1::String, pceFile2::String)
             # If parameter is also in PCE data, compute error difference
             if haskey(momentsPCE, key)
                 mat1, mat2 = val, momentsPCE[key] # Moments are stored as matrices
-                diff = mat1 - mat2
+                diff = abs.(mat1 - mat2)
                 diffVec = [diff[i, :] for i in 1:size(diff, 1)] # convert diff matrix to a vector of vectors
                 # Store diff rowwise, i.e. for each bus together with the number of used samples
                 errorsNi[key][i, :] = diffVec
@@ -125,7 +125,7 @@ function numSampVsError(mcFile::String, pceFile1::String, pceFile2::String)
             # If parameter is also in PCE data, compute error difference
             if haskey(momentsPCE, key)
                 mat1, mat2 = val, momentsPCE[key] # Moments are stored as matrices
-                diff = mat1 - mat2
+                diff = abs.(mat1 - mat2)
                 diffVec = [diff[i, :] for i in 1:size(diff, 1)] # convert diff matrix to a vector of vectors
                 # Store diff rowwise, i.e. for each bus together with the number of used samples
                 errorsSparse[key][i, :] = diffVec
