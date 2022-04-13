@@ -22,5 +22,7 @@ compareToMCMoments("coefficients/SPF_10u_MC_moments.jld2", "coefficients/SPF_10u
 
 
 # Compare iterated PCE methods
-# Error wrt MC moments
+# 10u error wrt MC moments
 numSampVsError("coefficients/SPF_10u_MC_moments.jld2", "coefficients/SPF_10u_NI_moments-iter.jld2", "coefficients/SPF_10u_sparse_moments-iter.jld2")
+# 10u error wrt MSE
+numSampVsError("coefficients/SPF_10u_NI_mse-iter.jld2", "coefficients/SPF_10u_sparse_mse-iter.jld2")

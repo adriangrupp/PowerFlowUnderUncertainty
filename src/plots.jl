@@ -138,16 +138,28 @@ Plot diagram for all
 function plotSampleVsError(numSamp::Vector, errorsNi::Matrix, errorsSparse::Matrix, busParam::String, errorType::String, dir::String)
     xPoints = numSamp
     for (i, col) in enumerate(eachcol(errorsNi))
-        errMeanNi = [el[1] for el in col]
-        errStdNi = [el[2] for el in col]
-        colSparse = errorsSparse[:, i]
-        errMeanSparse = [el[1] for el in colSparse]
-        errStdSprase = [el[2] for el in colSparse]
-    
-        yPoints1 = errMeanNi
-        yPoints2 = errMeanSparse
-        println(errMeanNi)
-        println(errMeanSparse)
+        if errorType == "moments"
+            errMeanNi = [el[1] for el in col]
+            errStdNi = [el[2] for el in col]
+            colSparse = errorsSparse[:, i]
+            errMeanSparse = [el[1] for el in colSparse]
+            errStdSprase = [el[2] for el in colSparse]
+            
+            yPoints1 = errMeanNi
+            yPoints2 = errMeanSparse
+            println(busParam, i, yPoints1)
+            println(busParam, i, yPoints2)
+        end
+        if errorType == "MSE"
+            errNi = [el for el in col]
+            colSparse = errorsSparse[:, i]
+            errSparse = [el for el in colSparse]
+        
+            yPoints1 = errNi
+            yPoints2 = errSparse
+            println(busParam, i, yPoints1)
+            println(busParam, i, yPoints2)
+        end
     
         title("Parameter: $busParam, Bus $i, $errorType Error")
         xlabel("numSamples")

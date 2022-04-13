@@ -77,7 +77,7 @@ function compareToMCMoments(mcFile::String, pceFile::String)
 end
 
 """
-Compare errors of all parameters vs numSamples in a plot. (moments or MSE)
+Compare errors of all parameters vs numSamples in a plot. (moments)
 """
 function numSampVsError(mcFile::String, pceFile1::String, pceFile2::String)
     f1 = load(mcFile)
@@ -140,6 +140,59 @@ function numSampVsError(mcFile::String, pceFile1::String, pceFile2::String)
             errorMatSparse = errorsSparse[key]
             if isassigned(errorMatNi, 1, 1) && isassigned(errorMatSparse, 1, 1) # if unassigned, don't plot
                 plotSampleVsError(numSamp, errorMatNi, errorMatSparse, String(key), "moments", plotDir)
+            end
+        end
+    end
+end
+
+"""
+Compare errors of all parameters vs numSamples in a plot. (MSE)
+"""
+function numSampVsError(pceFile1::String, pceFile2::String)
+    f1 = load(pceFile1)
+    f2 = load(pceFile2)
+
+    ## Parse PCE Data
+    # sort for numSamples (keys of dict)
+    dictPCENi = sort(collect(f1), by=x -> parse(Int, x[1]))
+    numSamp = [parse(Int, x[1]) for x in dictPCENi]
+    dictPCESparse = sort(collect(f2), by=x -> parse(Int, x[1]))
+    # Collection of all errors for all parameters(dict) -> all busses x numSamples(Matrix) -> Matrix entries are vectors of [numSamples, errMean, errStd]
+    errorsNi = Dict{Symbol,Matrix{Float64}}()
+    errorsSparse = Dict{Symbol,Matrix{Float64}}()
+    m = length(numSamp)
+    println(dictPCENi[1][2])
+    for (key, val) in dictPCENi[1][2]
+        n = size(val, 1)
+        errorsNi[key] = Matrix(undef, m, n)
+        errorsSparse[key] = Matrix(undef, m, n)
+    end
+
+    ## Iterate MSE for each sample size (non-intrusive)
+    for (i, mse) in enumerate(dictPCENi)
+        mse = mse[2] # sub dictionaries store parameter data
+        # Iterate mse for each parameter
+        for (key, val) in mse
+            errorsNi[key][i, :] = val
+        end
+    end
+
+    ## Iterate MSE for each sample size (sparse)
+    for (i, mse) in enumerate(dictPCESparse)
+        mse = mse[2] # sub dictionaries store parameter data
+        # Iterate mse for each parameter
+        for (key, val) in mse
+            errorsSparse[key][i, :] = val
+        end
+    end
+
+    ## Plot diefference for all existing parameters for NI and sparse at once
+    plotDir = "plots/10u_samples-MSE"
+    for (key, errorMatNi) in errorsNi
+        if haskey(errorsSparse, key)
+            errorMatSparse = errorsSparse[key]
+            if isassigned(errorMatNi, 1, 1) && isassigned(errorMatSparse, 1, 1) # if unassigned, don't plot
+                plotSampleVsError(numSamp, errorMatNi, errorMatSparse, String(key), "MSE", plotDir)
             end
         end
     end
