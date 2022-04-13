@@ -4,12 +4,13 @@ using PowerFlowUnderUncertainty, PowerModels, Ipopt, JuMP, TimerOutputs, JLD2
 30 Bus net: Non-intrusive PCE for stochastic power flow.
 10 Uncertainties: Bus 3(l2), 4(l3), 7(l4), 8(l5), 10(l6), 17(l11), 19(l13), 29(l19), 30(l20)  and Bus 13(g6).
 Take samples of power values, compute PF, perform regression for all needed variables.
+Multiple Iterations on sampleSize.
 """
 caseFile = "case30.m"
 maxDeg = 2
 nUnc = 10
 postProcessing = false
-sampleSize = [30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200]
+sampleSize = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200]
 
 include("init_ni.jl")
 ## Read case file, initialize network uncertainties and corresponding values
@@ -106,6 +107,13 @@ for size in sampleSize
         file["$numSamples"] = pf_state
     end
     println("PCE coefficients data added to $f_coeff.\n")
+    
+    # MSE
+    f_mse = "coefficients/SPF_10u_NI_mse-iter.jld2"
+    jldopen(f_mse, "a+") do file
+        file["$numSamples"] = mse
+    end
+    println("MSE data added to $f_mse.\n")
 
     # Compute and store moments from PCE coefficients
     @timeit to "Moments calculation" begin
