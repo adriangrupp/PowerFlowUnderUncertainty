@@ -21,7 +21,7 @@ sys = parseNetworkData(network_data)
 # Define uncertain buses
 p = [sys[:Pd][5], sys[:Pg][6]]
 q = [sys[:Qd][5], sys[:Qg][6]]
-unc = initUncertainty_Nu(p, q, numSamples)
+unc = initUncertainty_2u(p, q, numSamples)
 
 ## Dict of simulation results: each row of a parameter describes a bus
 pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),

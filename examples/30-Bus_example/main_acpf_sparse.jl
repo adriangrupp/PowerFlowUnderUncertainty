@@ -15,7 +15,7 @@ network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
 p = sys[:Pd][5]
 q = sys[:Qd][5]
-unc = initUncertainty_Nu(p, q, numSamples)
+unc = initUncertainty_1u(p, q, numSamples)
 
 ## Simulation results: each row of a parameter describes a bus
 pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
