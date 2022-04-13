@@ -1,4 +1,4 @@
-using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD
+using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, TimerOutputs, JLD2
 
 """
 5 Bus net: Non-intrusive PCE for stochastic optimal power flow
@@ -16,25 +16,19 @@ println("\n\t\t===== Stochastic OPF: 5 Bus case, 1 Uncertainty, non-intrusive PC
 
 # Read case file, initialize network uncertainties and corresponding values
 include("init_ni.jl")
-network_data = readCaseFlie(caseFile)
-sys = parseNetworkData(network_data)
 p = sys[:Pd][1]
 q = sys[:Qd][1]
 unc = initUncertainty_1u(p, q)
 
-## Dict of simulation results: each row of a parameter describes a bus
-pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
-    :qg => Array{Float64}(undef, sys[:Ng], 0),
-    :e => Array{Float64}(undef, sys[:Nbus], 0),
-    :f => Array{Float64}(undef, sys[:Nbus], 0)
-)
-
 ## Initialize solver
 solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 5)
 
+## Timer for profiling
+to = TimerOutput()
+
 ## Execute the model for all samples
 println("Running $numSamples deterministic OPF calculations (model evalutations)...")
-@time begin
+@timeit to "Model evaluations" begin
     for x in eachrow(unc[:samples_bus]) # each row is a sample set
         network_data["load"]["1"]["pd"] = x[1] # bus 2 / load 1
         network_data["load"]["1"]["qd"] = x[2] # bus 2 / load 1
@@ -46,12 +40,14 @@ println("Running $numSamples deterministic OPF calculations (model evalutations)
         pfRes[:e] = hcat(pfRes[:e], res[:e])
         pfRes[:f] = hcat(pfRes[:f], res[:f])
     end
-    print("Finished. Time:")
 end
+println("Finished.")
 
 ## Perform the regression for PCE coefficients of pd, qd, e and f and their mean squared error (mse)
 println("Compute non-intrusive PCE coefficients...\n")
-pce, mse = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
+@timeit to "PCE Regression" begin
+    pce, mse = computeCoefficientsNI(unc[:samples_unc], pfRes, unc)
+end
 
 ## Get PCE of currents, branch flows and demands
 pf_state = getGridStateNonintrusive(pce, sys, unc)
@@ -68,25 +64,31 @@ println()
 ### Store data for evaluation ###
 
 # PCE coefficients
-f_coeff = "coefficients/SOPF_NI.jld"
+f_coeff = "coefficients/SOPF_NI.jld2"
 save(f_coeff, "pf_state", pf_state)
 println("PCE coefficients data saved to $f_coeff.\n")
 
 # Compute and store moments from PCE coefficients
-moments = computeMoments(pf_state, unc)
-f_moms = "coefficients/SOPF_NI_moments.jld"
+@timeit to "Moments calculation" begin
+    moments = computeMoments(pf_state, unc)
+end
+
+f_moms = "coefficients/SOPF_NI_moments.jld2"
 save(f_moms, "moments", moments)
 println("PCE moments data saved to $f_moms.\n")
 
+## Show timing stats
+println("Timing resutls:")
+show(to)
 
 
 ### POST PROCESSING ###
 if postProcessing
     mycolor = "red"
-    plotHistogram_9in9(pf_samples[:pg], "pg", "./plots/SOPF-non-intrusive"; fignum = 1 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:qg], "qg", "./plots/SOPF-non-intrusive"; fignum = 2 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:e][1:5, :], "e", "./plots/SOPF-non-intrusive"; fignum = 3 + 10, color = mycolor)
-    plotHistogram_9in9(pf_samples[:f][1:5, :], "f", "./plots/SOPF-non-intrusive"; fignum = 7 + 10, color = mycolor)
+    plotHistogram_9in9(pf_samples[:pg], "pg", "./plots/SOPF-non-intrusive"; fignum=1 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:qg], "qg", "./plots/SOPF-non-intrusive"; fignum=2 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:e][1:5, :], "e", "./plots/SOPF-non-intrusive"; fignum=3 + 10, color=mycolor)
+    plotHistogram_9in9(pf_samples[:f][1:5, :], "f", "./plots/SOPF-non-intrusive"; fignum=7 + 10, color=mycolor)
 
-    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/SOPF-non-intrusive"; fignum = 0 + 10, color = mycolor)
+    plotHistogram_unc(pf_samples[:pd][:], pf_samples[:qd][:], ["pd", "qd"], "./plots/SOPF-non-intrusive"; fignum=0 + 10, color=mycolor)
 end
