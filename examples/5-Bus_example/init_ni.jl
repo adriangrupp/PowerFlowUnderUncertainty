@@ -31,7 +31,7 @@ function initUncertainty_1u(p, q)
     op = Beta01OrthoPoly(maxDeg, α, β)
 
     println("Polynomial basis of size $(op.deg+1):")
-    showbasis(op, digits = 2)
+    showbasis(op, digits=2)
     println()
 
     # PCE of demand. Compute affine coefficients for univariate uncertainty. Transform support of distributions
@@ -48,11 +48,15 @@ function initUncertainty_1u(p, q)
     samples_q = samples * (uq - lq) .+ lq
     ξ = sampleMeasure(5000, op)  # Evaluation samples
 
+    # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
+    Φ = evaluate(samples, op)
+
     unc = Dict(:opq => op,
         :dim => op.deg + 1,
         :pd => pd,
         :qd => qd,
         :samples_unc => samples,    # samples for exogenous uncertainty
         :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainty
-        :ξ => ξ)
+        :ξ => ξ,
+        :Φ => Φ)                                    # Regression matrix
 end
