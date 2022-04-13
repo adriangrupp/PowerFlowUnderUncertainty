@@ -1,4 +1,4 @@
-using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, JLD2
+using PowerFlowUnderUncertainty, PowerModels, LinearAlgebra, Ipopt, JuMP, TimerOutputs, JLD2
 
 """
 30 Bus net: Monte Carlo reference for stochastic power flow
@@ -42,24 +42,27 @@ pf_samples[:qd] = unc[:samples_bus][:, 2]'
 ## Execute the model for all samples
 println("Running $numSamples deterministic PF calculations (model evalutations)...")
 i = 1
-for x in eachrow(unc[:samples_bus])
-    i % 1000 == 0 ? println("Iteration $i") : nothing
-    global i += 1
+@timeit to "Model evaluations" begin
+    for x in eachrow(unc[:samples_bus])
+        i % 1000 == 0 ? println("Iteration $i") : nothing
+        global i += 1
 
-    network_data["load"]["5"]["pd"] = x[1] # bus 8 / load 5
-    network_data["load"]["5"]["qd"] = x[2] # bus 8 / load 5
+        network_data["load"]["5"]["pd"] = x[1] # bus 8 / load 5
+        network_data["load"]["5"]["qd"] = x[2] # bus 8 / load 5
 
-    res = runPfModel(network_data, solver)
-    currents = computeLineCurrentsDeterministic(res[:e], res[:f], sys)
-    merge!(res, currents)
+        res = runPfModel(network_data, solver)
+        currents = computeLineCurrentsDeterministic(res[:e], res[:f], sys)
+        merge!(res, currents)
 
-    pf_samples[:pg] = hcat(pf_samples[:pg], res[:pg])
-    pf_samples[:qg] = hcat(pf_samples[:qg], res[:qg])
-    pf_samples[:e] = hcat(pf_samples[:e], res[:e])
-    pf_samples[:f] = hcat(pf_samples[:f], res[:f])
-    pf_samples[:i_re] = hcat(pf_samples[:i_re], res[:i_re])
-    pf_samples[:i_im] = hcat(pf_samples[:i_im], res[:i_im])
+        pf_samples[:pg] = hcat(pf_samples[:pg], res[:pg])
+        pf_samples[:qg] = hcat(pf_samples[:qg], res[:qg])
+        pf_samples[:e] = hcat(pf_samples[:e], res[:e])
+        pf_samples[:f] = hcat(pf_samples[:f], res[:f])
+        pf_samples[:i_re] = hcat(pf_samples[:i_re], res[:i_re])
+        pf_samples[:i_im] = hcat(pf_samples[:i_im], res[:i_im])
+    end
 end
+println("Finished.")
 
 ## Additional polar values of current and voltage
 computePolarValues!(pf_samples)
@@ -69,14 +72,16 @@ display(pf_samples)
 println()
 
 ### Compute and store first two moments ###
-moments = Dict{Symbol,Matrix{Float64}}()
-for (key, samples) in pf_samples
-    let moms = Array{Float64}(undef, 0, 2)
-        for row in eachrow(samples)
-            mean_mc, std_mc = mean(row), std(row) #, skewness(row)
-            moms = vcat(moms, [mean_mc std_mc])
+@timeit to "Moments calculation" begin
+    moments = Dict{Symbol,Matrix{Float64}}()
+    for (key, samples) in pf_samples
+        let moms = Array{Float64}(undef, 0, 2)
+            for row in eachrow(samples)
+                mean_mc, std_mc = mean(row), std(row) #, skewness(row)
+                moms = vcat(moms, [mean_mc std_mc])
+            end
+            moments[key] = moms
         end
-        moments[key] = moms
     end
 end
 
@@ -88,6 +93,10 @@ println()
 f_moms = "coefficients/SPF_MC_moments.jld2"
 save(f_moms, "moments", moments)
 println("Monte Carlo moments data saved to $f_moms.\n")
+
+## Show timing stats
+println("Timing resutls:")
+show(to)
 
 
 ### POST PROCESSING ###

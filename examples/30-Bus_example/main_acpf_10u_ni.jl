@@ -74,7 +74,7 @@ println("Running $numSamples deterministic PF calculations (model evalutations).
         pfRes[:f] = hcat(pfRes[:f], res[:f])
     end
 end
-print("Finished.")
+println("Finished.")
 
 ## Perform the regression for PCE coefficients of pd, qd, e and f and their mean squared error (mse)
 println("\nCompute non-intrusive PCE coefficients...\n")
