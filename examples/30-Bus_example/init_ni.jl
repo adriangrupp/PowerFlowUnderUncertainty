@@ -3,14 +3,6 @@ using Random, PolyChaos, LinearAlgebra
 Random.seed!(1234)
 
 """
-Transformation matrix from β-distribution to affine PCE coefficients
-    `[ x_0; x_1 ] = supp2pce(α,β)*[ x_lb; x_ub ]`
-"""
-function supp2pce(α, β)
-    T = 1 / (α + β) * [β α; -1 1]
-end
-
-"""
 Initialization for 1 uncertainty (β-distributed)
 """
 function initUncertainty_1u(p, q, numSamples::Int)
@@ -83,18 +75,28 @@ function initUncertainty_2u(p::Vector, q::Vector, numSamples::Int)
     δ = 0.15 # deviation from nominal value
     # Iterate for all uncertainties
     for (i, op) in enumerate(ops)
-        lp, up = [1 - δ, 1 + δ] * p[i]
+        # real power PCE
+        lp, up = [1 - δ, 1 + δ] * p[i] # lower and upper bounds of relative deviations
+        if p[i] == 0 # this case is not handled by PolyChaos, hence set manually
+            pce_p = [0.0, 0.0]
+        else # otherwise get coefficients by 
+            pce_p = convert2affinePCE(lp, up, op)
+        end
+        # reactive power PCE
         lq, uq = [1 - δ, 1 + δ] * q[i]
-        pce_q = supp2pce(α[i], β[i]) * [lq; uq] # need to do this due to 0/0 support
-        pce_p = convert2affinePCE(lp, up, op)
-
+        if q[i] == 0 # this case is not handled by PolyChaos, hence set manually
+            pce_q = [0.0, 0.0]
+        else
+            pce_q = convert2affinePCE(lq, uq, op)
+        end
+    
         pdi = assign2multi(pce_p, i, mop.ind) # Get sparse array assigned with first two pce coefficients to multivariate polynomial
         qdi = assign2multi(pce_q, i, mop.ind)
         pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
         qd[i, :] = qdi'
-
-        samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Generate samples for each uncertainty
-        samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Generate samples for each uncertainty
+    
+        samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Transform samples according to β-uncertainty shape
+        samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Transform samples according to β-uncertainty shape
     end
 
     return Dict(:opq => mop,
@@ -140,17 +142,28 @@ function initUncertainty_Nu(p::Vector, q::Vector, numSamples::Int)
     δ = 0.15 # deviation from nominal value
     # Iterate for all uncertainties
     for (i, op) in enumerate(ops)
-        lp, up = [1 - δ, 1 + δ] * p[i]
+        # real power PCE
+        lp, up = [1 - δ, 1 + δ] * p[i] # lower and upper bounds of relative deviations
+        if p[i] == 0 # this case is not handled by PolyChaos, hence set manually
+            pce_p = [0.0, 0.0]
+        else # otherwise get coefficients by 
+            pce_p = convert2affinePCE(lp, up, op)
+        end
+        # reactive power PCE
         lq, uq = [1 - δ, 1 + δ] * q[i]
-        pce_p = convert2affinePCE(lp, up, op)
-        pce_q = supp2pce(α[i], β[i]) * [lq; uq]
+        if q[i] == 0 # this case is not handled by PolyChaos, hence set manually
+            pce_q = [0.0, 0.0]
+        else
+            pce_q = convert2affinePCE(lq, uq, op)
+        end
+
         pdi = assign2multi(pce_p, i, mop.ind) # Get sparse array assigned with first two pce coefficients to multivariate polynomial
         qdi = assign2multi(pce_q, i, mop.ind)
         pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
         qd[i, :] = qdi'
 
-        samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Generate samples for each uncertainty
-        samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Generate samples for each uncertainty
+        samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Transform samples according to β-uncertainty shape
+        samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Transform samples according to β-uncertainty shape
     end
 
     return Dict(:opq => mop,

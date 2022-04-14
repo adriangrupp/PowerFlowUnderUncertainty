@@ -14,14 +14,6 @@ pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
 )
 
 """
-Transformation matrix from β-distribution to affine PCE coefficients
-    `[ x_0; x_1 ] = supp2pce(α,β)*[ x_lb; x_ub ]`
-"""
-function supp2pce(α, β)
-    T = 1 / (α + β) * [β α; -1 1]
-end
-
-"""
 Initialization for 1 uncertainty (bus 8/load 5)
 """
 function initUncertainty_1u(p, q)
@@ -40,8 +32,8 @@ function initUncertainty_1u(p, q)
     δ = 0.15 # deviation from nominal value
     lp, up = [1 - δ, 1 + δ] * p
     lq, uq = [1 - δ, 1 + δ] * q
-    pd[1, [1, 2]] = supp2pce(α, β) * [lp; up]
-    qd[1, [1, 2]] = supp2pce(α, β) * [lq; uq]
+    pd[1, [1, 2]] = convert2affinePCE(lp, up, op)
+    qd[1, [1, 2]] = convert2affinePCE(lq, uq, op)
 
     samples = sampleMeasure(numSamples, op)  # NI model samples
     samples_p = samples * (up - lp) .+ lp
