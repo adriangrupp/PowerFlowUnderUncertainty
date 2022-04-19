@@ -10,7 +10,13 @@ caseFile = "case30.m"
 maxDeg = 2
 nUnc = 10
 postProcessing = false
-sampleSize = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200]
+sampleSize = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200] # for maxDeg = 2
+# sampleSize = [10, 50, 100, 150, 200, 250, 280, 290, 300, 350, 400] # for maxDeg = 3
+
+# JLD2 files to store results data as dicts
+f_coeff = jldopen("coefficients/SPF_10u_NI-iter.jld2", "w")
+f_mse = jldopen("coefficients/SPF_10u_NI_mse-iter.jld2", "w")
+f_moms = jldopen("coefficients/SPF_10u_NI_moments-iter.jld2", "w")
 
 include("init_ni.jl")
 ## Read case file, initialize network uncertainties and corresponding values
@@ -102,17 +108,11 @@ for size in sampleSize
     ### Store data for evaluation ###
 
     # PCE coefficients
-    f_coeff = "coefficients/SPF_10u_NI-iter.jld2"
-    jldopen(f_coeff, "a+") do file
-        file["$numSamples"] = pf_state
-    end
+    f_coeff["$numSamples"] = pf_state
     println("PCE coefficients data added to $f_coeff.\n")
-    
+
     # MSE
-    f_mse = "coefficients/SPF_10u_NI_mse-iter.jld2"
-    jldopen(f_mse, "a+") do file
-        file["$numSamples"] = mse
-    end
+    f_mse["$numSamples"] = mse
     println("MSE data added to $f_mse.\n")
 
     # Compute and store moments from PCE coefficients
@@ -120,10 +120,7 @@ for size in sampleSize
         moments = computeMoments(pf_state, unc)
     end
 
-    f_moms = "coefficients/SPF_10u_NI_moments-iter.jld2"
-    jldopen(f_moms, "a+") do file
-        file["$numSamples"] = moments
-    end
+    f_moms["$numSamples"] = moments
     println("PCE moments data saved to $f_moms.\n")
 
     ## Show timing stats
@@ -150,3 +147,8 @@ for size in sampleSize
         plotHistogram_2unc(pf_samples[:pd], pf_samples[:qd], ["pd_8", "qd_8", "pg_13", "qg_13"], "./plots/2u_non-intrusive"; fignum=0 + 10, color=mycolor)
     end
 end
+
+# Close jls2 files after iteration
+close(f_coeff)
+close(f_mse)
+close(f_moms)
