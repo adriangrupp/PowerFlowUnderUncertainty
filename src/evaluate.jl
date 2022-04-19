@@ -1,4 +1,4 @@
-export showData,
+export getData,
     compareCoefficients,
     compareToMCMoments,
     numSampVsError
@@ -8,14 +8,14 @@ export showData,
 """
 Show method to simply access the stored data
 """
-function showData(file::String)
+function getData(file::String)
     f = load(file)
     if haskey(f, "pf_state")
-        JLD.display(f["pf_state"])
+        return(f["pf_state"])
     elseif haskey(f, "moments")
-        JLD.display(f["moments"])
+        return(f["moments"])
     else
-        display(f)
+        return(f)
     end
 end
 
@@ -134,7 +134,7 @@ function numSampVsError(mcFile::String, pceFile1::String, pceFile2::String)
     end
 
     ## Plot diefference for all existing parameters for NI and sparse at once
-    plotDir = "plots/10u_samples-moments_errors"
+    plotDir = "plots/10u_samples-moments-errors_2deg"
     for (key, errorMatNi) in errorsNi
         if haskey(errorsSparse, key)
             errorMatSparse = errorsSparse[key]
@@ -161,7 +161,6 @@ function numSampVsError(pceFile1::String, pceFile2::String)
     errorsNi = Dict{Symbol,Matrix{Float64}}()
     errorsSparse = Dict{Symbol,Matrix{Float64}}()
     m = length(numSamp)
-    println(dictPCENi[1][2])
     for (key, val) in dictPCENi[1][2]
         n = size(val, 1)
         errorsNi[key] = Matrix(undef, m, n)
@@ -169,8 +168,8 @@ function numSampVsError(pceFile1::String, pceFile2::String)
     end
 
     ## Iterate MSE for each sample size (non-intrusive)
-    for (i, mse) in enumerate(dictPCENi)
-        mse = mse[2] # sub dictionaries store parameter data
+    for (i, el) in enumerate(dictPCENi)
+        mse = el[2] # sub dictionaries store parameter data
         # Iterate mse for each parameter
         for (key, val) in mse
             errorsNi[key][i, :] = val
@@ -187,7 +186,7 @@ function numSampVsError(pceFile1::String, pceFile2::String)
     end
 
     ## Plot diefference for all existing parameters for NI and sparse at once
-    plotDir = "plots/10u_samples-MSE"
+    plotDir = "plots/10u_samples-MSE_2deg"
     for (key, errorMatNi) in errorsNi
         if haskey(errorsSparse, key)
             errorMatSparse = errorsSparse[key]
