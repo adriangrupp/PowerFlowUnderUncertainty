@@ -136,7 +136,7 @@ end
 Core non-intrusive PCE method. Computes PCE coefficients component-wise with provided method.
 Can do either full or sparse non-intrusive PCE.
 """
-function computeCoefficients(PCEmethod::Function, X::VecOrMat, busRes::Dict, unc::Dict)
+function computeCoefficients(PCEmethod::Function, busRes::Dict, unc::Dict)
     dim = unc[:dim]
     pceRes = Dict() # PCE coefficients
     pceErr = Dict() # LOO-error of all coefficients
@@ -147,7 +147,7 @@ function computeCoefficients(PCEmethod::Function, X::VecOrMat, busRes::Dict, unc
         err = zeros(0)
         # Iterate for each bus
         for row in eachrow(res)
-            coeffs = PCEmethod(unc[:Φ], row)
+            coeffs = PCEmethod(row)
             pce = vcat(pce, coeffs')
             append!(err, looError(row, unc[:Φ], coeffs))
         end
@@ -162,16 +162,16 @@ end
 Compute PCE coefficients fr a full basis via least squares regression
 """
 function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
-    method(Φ, Y) = leastSquares(Φ, Y)
-    return computeCoefficients(method, X, busRes, unc)
+    method(Y) = leastSquares(unc[:Φ], Y)
+    return computeCoefficients(method, busRes, unc)
 end
 
 """
 Compute PCE coefficients fr a full basis via least squares regression
 """
 function computeCoefficientsSparse(X::VecOrMat, busRes::Dict, unc::Dict; K::Int=2)
-    method(Φ, Y) = subspacePursuit(Φ, Y, K)[1] # First return value are the PCE coefficients
-    return computeCoefficients(method, X, busRes, unc)
+    method(Y) = subspacePursuit(unc[:Φ], Y, K)[1] # First return value are the PCE coefficients
+    return computeCoefficients(method, busRes, unc)
 end
 
 function sampleFromGaussianMixture(n::Int,μ::Vector{},σ::Vector{},w::Vector{})
