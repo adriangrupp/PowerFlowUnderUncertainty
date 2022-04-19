@@ -143,12 +143,15 @@ function plotSampleVsError(numSamp::Vector, errorsNi::Matrix, errorsSparse::Matr
             errStdNi = [el[2] for el in col]
             colSparse = errorsSparse[:, i]
             errMeanSparse = [el[1] for el in colSparse]
-            errStdSprase = [el[2] for el in colSparse]
-            
+            errStdSparse = [el[2] for el in colSparse]
+        
             yPoints1 = errMeanNi
             yPoints2 = errMeanSparse
-            println(busParam, i, yPoints1)
-            println(busParam, i, yPoints2)
+            yPoints3 = errStdNi
+            yPoints4 = errStdSparse
+        
+            plotCurveWithMarks(busParam, i, "$(errorType)_mean", dir, xPoints, yPoints1, yPoints2)
+            plotCurveWithMarks(busParam, i, "$(errorType)_std", dir, xPoints, yPoints3, yPoints4)
         end
         if errorType == "MSE"
             errNi = [el for el in col]
@@ -157,13 +160,15 @@ function plotSampleVsError(numSamp::Vector, errorsNi::Matrix, errorsSparse::Matr
         
             yPoints1 = errNi
             yPoints2 = errSparse
-            println(busParam, i, yPoints1)
-            println(busParam, i, yPoints2)
+            plotCurveWithMarks(busParam, i, errorType, dir, xPoints, yPoints1, yPoints2)
         end
-    
-        title("Parameter: $busParam, Bus $i, $errorType Error")
+    end
+end
+
+function plotCurveWithMarks(busParam::String, i::Int, errorType::String, dir::String, xPoints::Vector, yPoints1::Vector, yPoints2::Vector)
+        title("Parameter: $busParam, Bus $i, Err_$errorType")
         xlabel("numSamples")
-        xticks(numSamp, rotation=70)
+        xticks(xPoints, rotation=70)
         ylabel("Error_$(errorType)")
         yscale("log")
     
@@ -171,9 +176,8 @@ function plotSampleVsError(numSamp::Vector, errorsNi::Matrix, errorsSparse::Matr
         plot(xPoints, yPoints2, linestyle="dashed", marker="^", ms="8", mec="r", label="sparse")
         legend()
     
-        name = "$(busParam)_$(i)_$(errorType)_mean"
+        name = "$(busParam)_$(i)_$(errorType)"
         println("Plotting: $dir/$name.pdf")
         savefig("$dir/$name.pdf")
         clf()
-    end
 end
