@@ -10,15 +10,17 @@ getVoltageResult
 Get indices of all load buses
 """
 function getLoadIndices(network_data)
-    idx = [el[2]["load_bus"] for el in network_data["load"]]
+    load = sort(collect(network_data["load"]), by=x -> parse(Int, x[1])) # sort solution/gen entries by IDs which are converted from string to Int
+    idx = [el[2]["load_bus"] for el in load]
     return sort(idx)
 end
 """
 Get quadradic and linear generator cost
 """
 function getCost(network_data)
-    costquad = [el[2]["cost"][1] for el in network_data["gen"]]
-    costlin  = [el[2]["cost"][2] for el in network_data["gen"]]
+    gen = sort(collect(network_data["gen"]), by=x -> parse(Int, x[1])) # sort solution/gen entries by IDs which are converted from string to Int
+    costquad = [el[2]["cost"][1] for el in gen]
+    costlin = [el[2]["cost"][2] for el in gen]
     return costquad, costlin
 end
 """
