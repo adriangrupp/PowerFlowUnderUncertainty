@@ -4,8 +4,9 @@ export getGridState,
     computeLineCurrents,
     computeLineCurrentsDeterministic,
     getGridStateDC
-
-# PCE coefficients for all network parameters (intrusive)
+"""
+PCE coefficients for all network parameters (intrusive)
+"""
 function getGridState(mod::Model, sys::Dict, unc::Dict)
     d = Dict{Symbol,Matrix{Float64}}()
     for (key, val) in mod.obj_dict
@@ -16,7 +17,9 @@ function getGridState(mod::Model, sys::Dict, unc::Dict)
     merge!(d, computeLineCurrents(mod, sys, unc))
 end
 
-# PCE coefficients for all network parameters (non-intrusive)
+"""
+PCE coefficients for all network parameters (non-intrusive)
+"""
 function getGridStateNonintrusive(pce::Dict, sys::Dict, unc::Dict)
     d = Dict{Symbol,Matrix{Float64}}()
     d[:pg], d[:qg], d[:e], d[:f] = pce[:pg], pce[:qg], pce[:e], pce[:f]
@@ -34,7 +37,9 @@ function getGridStateDC(mod::Model, sys::Dict, unc::Dict)
     merge!(d, computeAnglesDC(mod, sys, unc))
 end
 
-# Compute PCE coefficients of line currents for each branch and each PCE degree
+"""
+Compute PCE coefficients of line currents for each branch and each PCE degree
+"""
 function computeLineCurrents(E::Matrix, F::Matrix, grid::Dict, unc::Dict)
     A, ybr = grid[:A], grid[:Ybr]
     gbr, bbr = real(ybr), imag(ybr)
@@ -52,13 +57,17 @@ function computeLineCurrents(E::Matrix, F::Matrix, grid::Dict, unc::Dict)
         :i_im => fil_imag)
 end
 
-# Line currents. Intrusive version data format
+"""
+Compute line currents. Intrusive version data format
+"""
 function computeLineCurrents(mod::Model, grid::Dict, unc::Dict)
     E, F = value.(mod[:e]), value.(mod[:f])
     return computeLineCurrents(E, F, grid, unc)
 end
 
-# Line currents. Non-intrusive version data format
+"""
+Compute line currents. Non-intrusive version data format
+"""
 function computeLineCurrentsNonIntrusive(pce::Dict, grid::Dict, unc::Dict)
     E, F = pce[:e], pce[:f]
     return computeLineCurrents(E, F, grid, unc)
@@ -108,7 +117,7 @@ function computeLineFlows(mod::Model, grid::Dict, unc::Dict)
         :ql_f => fql_f)
 end
 
-function computeLineFlowsNonIntrusive(mod::Model, grid::Dict, unc::Dict)
+function computeLineFlowsNonIntrusive(mod::Model, grid::Dict, unc::Dict) # TODO
     A, ybr, T3, T2 = grid[:A], grid[:Ybr], unc[:T3], unc[:T2]
     gbr, bbr, bsh = real(ybr), imag(ybr), grid[:Bsh]
     M, N, L = grid[:Nline], grid[:N], unc[:dim]

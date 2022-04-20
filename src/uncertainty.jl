@@ -159,7 +159,7 @@ function computeCoefficients(PCEmethod::Function, busRes::Dict, unc::Dict)
 end
 
 """
-Compute PCE coefficients fr a full basis via least squares regression
+Compute PCE coefficients for a full basis via least squares regression
 """
 function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
     method(Y) = leastSquares(unc[:Φ], Y)
@@ -167,7 +167,7 @@ function computeCoefficientsNI(X::VecOrMat, busRes::Dict, unc::Dict)
 end
 
 """
-Compute PCE coefficients fr a full basis via least squares regression
+Compute PCE coefficients for a sparse basis via subspace pursuit algorithm
 """
 function computeCoefficientsSparse(X::VecOrMat, busRes::Dict, unc::Dict; K::Int=2)
     method(Y) = subspacePursuit(unc[:Φ], Y, K)[1] # First return value are the PCE coefficients
