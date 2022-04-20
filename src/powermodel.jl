@@ -83,14 +83,14 @@ Input:  x - sampled value for active power of PQ bus.
 Return: dict of OPF outputs.
 """
 function runOpfModel(network_data, solver)
-    pf = PowerModels.run_opf(network_data, ACRPowerModel, solver)
+    opf = PowerModels.run_model(network_data, ACRPowerModel, solver, build_opf)
 
-    # check if solution was feasible
-    status = pf["termination_status"]
+    # Check if solution was feasible
+    status = opf["termination_status"]
     status == OPTIMAL || status == LOCALLY_SOLVED ? nothing : error("Potentially no solution found: ", status)
 
-    pg, qg = getGenPQResult(pf)
-    vr, vi = getVoltageResult(pf)
+    pg, qg = getGenPQResult(opf)
+    vr, vi = getVoltageResult(opf)
 
     objective = pf["objective"] # objective function value
 
@@ -99,4 +99,37 @@ function runOpfModel(network_data, solver)
         :e => vr, # we use e and f as convention for real and imaginary voltage parts
         :f => vi,
         :obj => objective)
+end
+
+"""
+Custom building of OPF model.
+Initialize variables, set bounds, set start values, add constraints.
+"""
+function build_opf(pm::AbstractPowerModel)
+    variable_bus_voltage(pm)  # create bus voltage variables with bounds on real and imaginary part
+    variable_gen_power(pm)    # create generator variables with bounds on p and q
+    variable_branch_power(pm, bounded=false) # create branch variables without bounds on p and q
+
+    objective_min_fuel_cost(pm) # objective function, minimize generator cost
+
+    # Slack bus constraint
+    for i in ids(pm, :ref_buses)
+        constraint_theta_ref(pm, i) # set angle θ to 0
+    end
+
+    # Equality constraints (power flow)
+    for i in ids(pm, :bus)
+        constraint_power_balance(pm, i)
+    end
+
+    # Brach constraints
+    for i in ids(pm, :branch)
+        # constraint_ohms_yt_from(pm, i)
+        # constraint_ohms_yt_to(pm, i)
+
+        # constraint_voltage_angle_difference(pm, i)
+
+        # constraint_thermal_limit_from(pm, i)
+        # constraint_thermal_limit_to(pm, i)
+    end
 end
