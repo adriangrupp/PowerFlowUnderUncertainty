@@ -7,7 +7,7 @@ Take samples of power values, compute PF, perform regression for all needed vari
 """
 
 caseFile = "case30.m"
-numSamples = 200
+numSamples = 67
 maxDeg = 2
 nUnc = 10
 postProcessing = false
@@ -131,5 +131,5 @@ if postProcessing
     plotHistogram_9in9(pf_samples[:f][19:27, :], "f3", "./plots/10u_non-intrusive"; fignum=9 + 10, color=mycolor)
     plotHistogram_9in9(pf_samples[:f][28:30, :], "f4", "./plots/10u_non-intrusive"; fignum=10 + 10, color=mycolor)
     # Plot P & Q of uncertainties TODO
-    plotHistogram_2unc(pf_samples[:pd], pf_samples[:qd], ["pd_8", "qd_8", "pg_13", "qg_13"], "./plots/2u_non-intrusive"; fignum=0 + 10, color=mycolor)
+    plotHistogram_2unc(pf_samples[:pd], pf_samples[:qd], ["pd_8", "qd_8", "pg_13", "qg_13"], "./plots/10u_non-intrusive"; fignum=0 + 10, color=mycolor)
 end
