@@ -92,7 +92,7 @@ function runOpfModel(network_data, solver)
     pg, qg = getGenPQResult(opf)
     vr, vi = getVoltageResult(opf)
 
-    objective = pf["objective"] # objective function value
+    objective = opf["objective"] # objective function value
 
     return Dict(:pg => pg,
         :qg => qg,
