@@ -1,6 +1,6 @@
 name = "PowerFlowUnderUncertainty"
 uuid = "26d6d24a-aa08-11e9-3fac-8f3e13edeea8"
-authors = ["timueh <tillmann.muehlpfordt@kit.edu>"]
+authors = ["adriangrupp <adrian.grupp@posteo.net>"]
 version = "0.1.0"
 
 [deps]
