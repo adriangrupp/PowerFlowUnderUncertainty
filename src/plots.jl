@@ -166,11 +166,12 @@ function plotSampleVsError(numSamp::Vector, errorsNi::Matrix, errorsSparse::Matr
 end
 
 function plotCurveWithMarks(busParam::String, i::Int, errorType::String, dir::String, xPoints::Vector, yPoints1::Vector, yPoints2::Vector)
-        title("Parameter: $busParam, Bus $i, Err_$errorType")
+        title("Parameter: $busParam, Bus $i, Error: $errorType")
         xlabel("numSamples")
         xticks(xPoints, rotation=70)
-        ylabel("Error_$(errorType)")
+        ylabel("Err_$(errorType)")
         yscale("log")
+        tight_layout() # spacing around labels
     
         plot(xPoints, yPoints1, linestyle="dashed", marker="^", ms="8", mec="r", label="non-intrusive")
         plot(xPoints, yPoints2, linestyle="dashed", marker="^", ms="8", mec="r", label="sparse")
