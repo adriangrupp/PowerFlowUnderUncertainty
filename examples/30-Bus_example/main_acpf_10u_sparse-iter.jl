@@ -88,7 +88,7 @@ for size in sampleSize
     println("Finished.")
 
     ## Perform the regression for PCE coefficients of pd, qd, e and f and their mean squared error (mse)
-    println("\nCompute non-intrusive PCE coefficients...\n")
+    println("\nCompute sparse PCE coefficients...\n")
     @timeit to "PCE Regression" begin
         pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc, K=numSamples)
     end

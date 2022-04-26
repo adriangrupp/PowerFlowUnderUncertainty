@@ -90,7 +90,7 @@ end
 println("Finished.")
 
 # Perform the regression for PCE coefficients on pd, qd, e and f
-println("\nCompute non-intrusive PCE coefficients...\n")
+println("\nCompute sparse PCE coefficients...\n")
 @timeit to "PCE Regression" begin
     pce, mse = computeCoefficientsSparse(unc[:samples_unc], pfRes, unc; K=K)
 end
