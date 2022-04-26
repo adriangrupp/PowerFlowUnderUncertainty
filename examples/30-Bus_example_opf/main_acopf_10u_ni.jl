@@ -43,7 +43,7 @@ solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 5)
 to = TimerOutput()
 
 ## Execute the model for all samples
-println("Running $numSamples deterministic PF calculations (model evalutations)...")
+println("Running $numSamples deterministic OPF calculations (model evalutations)...")
 @timeit to "Model evaluations" begin
     for x in eachrow(unc[:samples_bus]) # each row is a sample set
         network_data["load"]["2"]["pd"] = x[1]      # bus 3 / load 2
@@ -113,10 +113,12 @@ println("PCE moments data saved to $f_moms.\n")
 ## Show timing stats
 println("Timing resutls:")
 show(to)
+println()
 
 
 ### POST PROCESSING ###
 if postProcessing
+    println("Plotting histograms of bus/line parameters.")
     mycolor = "red"
     plotHistogram_6in9(pf_samples[:pg], "pg", "./plots/10u_non-intrusive"; fignum=1 + 10, color=mycolor)
     plotHistogram_6in9(pf_samples[:qg], "qg", "./plots/10u_non-intrusive"; fignum=2 + 10, color=mycolor)
