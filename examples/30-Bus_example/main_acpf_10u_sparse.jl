@@ -19,27 +19,15 @@ println("\n\t\t===== Stochastic Power Flow: 30 Bus case, 10 Uncertainties, Spars
 include("init_ni.jl")
 network_data = readCaseFile(caseFile)
 sys = parseNetworkData(network_data)
+
 # Define uncertain buses
-p = [sys[:Pd][2],
-    sys[:Pd][3],
-    sys[:Pd][4],
-    sys[:Pd][5],
-    sys[:Pd][6],
-    sys[:Pd][11],
-    sys[:Pd][13],
-    sys[:Pd][19],
-    sys[:Pd][20],
-    sys[:Pg][6]]
-q = [sys[:Qd][2],
-    sys[:Qd][3],
-    sys[:Qd][4],
-    sys[:Qd][5],
-    sys[:Qd][6],
-    sys[:Qd][11],
-    sys[:Qd][13],
-    sys[:Qd][19],
-    sys[:Qd][20],
-    sys[:Qg][6]]
+unc_load = [2, 3, 4, 5, 6, 11, 13, 19, 20]
+unc_gen = 6
+p = [sys[:Pd][i] for i in unc_load]
+append!(p, sys[:Pg][6])
+q = [sys[:Qd][i] for i in unc_load]
+append!(q, sys[:Qg][6])
+
 unc = initUncertainty_Nu(p, q, numSamples)
 
 ## Dict of simulation results: each row of a parameter describes a bus
