@@ -62,7 +62,7 @@ Input:  network_data - modified netword description of PQ values. solver - initi
 Return: dict of PF outputs.
 """
 function runPfModel(network_data, solver)
-    pf = PowerModels.run_pf(network_data, ACRPowerModel, solver)
+    pf = PowerModels.solve_pf(network_data, ACRPowerModel, solver)
 
     # check if solution was feasible
     status = pf["termination_status"]
@@ -83,7 +83,7 @@ Input:  x - sampled value for active power of PQ bus.
 Return: dict of OPF outputs.
 """
 function runOpfModel(network_data, solver)
-    opf = PowerModels.run_model(network_data, ACRPowerModel, solver, build_opf)
+    opf = PowerModels.solve_model(network_data, ACRPowerModel, solver, build_opf)
 
     # Check if solution was feasible
     status = opf["termination_status"]
@@ -111,6 +111,9 @@ function build_opf(pm::AbstractPowerModel)
     variable_branch_power(pm, bounded=false) # create branch variables without bounds on p and q
 
     objective_min_fuel_cost(pm) # objective function, minimize generator cost
+    # objective_min_fuel_and_flow_cost(pm)
+
+    # constraint_model_voltage(pm)
 
     # Slack bus constraint
     for i in ids(pm, :ref_buses)
@@ -124,8 +127,8 @@ function build_opf(pm::AbstractPowerModel)
 
     # Brach constraints
     for i in ids(pm, :branch)
-        # constraint_ohms_yt_from(pm, i)
-        # constraint_ohms_yt_to(pm, i)
+        constraint_ohms_yt_from(pm, i)
+        constraint_ohms_yt_to(pm, i)
 
         # constraint_voltage_angle_difference(pm, i)
 
