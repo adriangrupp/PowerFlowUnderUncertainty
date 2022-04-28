@@ -7,7 +7,7 @@ Take samples of power values, compute OPF, perform regression for all needed var
 """
 
 caseFile = "case30.m"
-numSamples = 65
+numSamples = 150
 maxDeg = 2
 nUnc = 10
 postProcessing = true
@@ -37,7 +37,7 @@ pfRes = Dict(:pg => Array{Float64}(undef, sys[:Ng], 0),
 )
 
 ## Initialize solver
-solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 5)
+solver = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 2)
 
 ## Timer for profiling
 to = TimerOutput()
