@@ -31,7 +31,7 @@ function initUncertainty_1u(p, q, numSamples::Int)
 
     # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
     Φ = evaluate(samples, op)
-    
+
     return Dict(:opq => op,
         :dim => op.deg + 1,
         :pd => pd,
@@ -89,12 +89,12 @@ function initUncertainty_2u(p::Vector, q::Vector, numSamples::Int)
         else
             pce_q = convert2affinePCE(lq, uq, op)
         end
-    
+
         pdi = assign2multi(pce_p, i, mop.ind) # Get sparse array assigned with first two pce coefficients to multivariate polynomial
         qdi = assign2multi(pce_q, i, mop.ind)
         pd[i, :] = pdi' # Collect index/coefficient arrays for all uncertainties
         qd[i, :] = qdi'
-    
+
         samples_p[:, i] = samples[:, i] * (up - lp) .+ lp # Transform samples according to β-uncertainty shape
         samples_q[:, i] = samples[:, i] * (uq - lq) .+ lq # Transform samples according to β-uncertainty shape
     end
@@ -130,7 +130,7 @@ function initUncertainty_Nu(p::Vector, q::Vector, numSamples::Int)
     samples = hcat(samples...) # numSamples x nUnc matrix
     ξ = [sampleMeasure(5000, op) for op in ops]  # Evaluation samples for each uncertainty
     ξ = hcat(ξ...) # 5000 x nUnc
-    
+
     # Evaluate polynomial basis for all samples. Multiply dispatched for uni and multivar
     Φ = evaluate(samples, mop)' # Transpose regression matrix for multivariate bases, because PolyChaos somehow swaps dimensions
 
@@ -174,4 +174,49 @@ function initUncertainty_Nu(p::Vector, q::Vector, numSamples::Int)
         :samples_bus => hcat(samples_p, samples_q), # samples for bus uncertainties, first all p then all q values
         :ξ => ξ,                                    # Samples for post processing, i.e., histrogram plots
         :Φ => Φ)                                    # Regression matrix
+end
+
+
+"""
+Debug
+"""
+# res = pfRes[key][2, :]
+# coeffs = pce[key][2, :]
+function looError2(Y::AbstractVector{Float64}, Φ::AbstractMatrix{Float64}, pceCoeffs)
+    @assert length(Y) > 0 "Empty results vector Y"
+    @assert length(Y) == size(Φ, 1) "Inconsistent number of elements"
+
+    # Compute PCE model response
+    Y_Pce = Φ * pceCoeffs
+
+    # h-factor for validation sets
+    M = Φ * inv(Φ' * Φ) * Φ' #TODO: fix conditioning
+    N = size(M, 1)
+    h = ones(N) - diag(M)
+
+    # Empirical variance of sampling evaluation (true model)
+    n = length(Y)
+    varY = n > 1 ? 1 / (n - 1) * sum((Y[i] - mean(Y))^2 for i in 1:n) : 0
+    varY < eps() ? varY = 0 : nothing # set to 0 if we are smaller than machine epsilon to avoid strange behavior
+
+    # Compute squared error with h-factor
+    loo = 1 / N * sum(((Y[i] - Y_Pce[i]) / (1 - h[i]))^2 for i in 1:N)
+
+    ## Debuging
+    # println("Y: ", Y)
+    # println("pceCoeffs: ", pceCoeffs)
+    # println("M: ", M)
+    println("Y - Y_Pce: ", Y - Y_Pce)
+    println("mean: ", mean(Y))
+    # println("h: ", h)
+    println("varY: ", varY)
+    println("looError: ", loo)
+
+    # Normalize error with variance. Set error to 0, if var is 0
+    looError = varY == 0 ? 0 : loo / varY
+
+    # TODO: adjusted Error computation
+
+    # Return loo error. Return Inf, if it is NaN. Can happen for underdetermined problems.
+    return isnan(looError) ? Inf : looError
 end
