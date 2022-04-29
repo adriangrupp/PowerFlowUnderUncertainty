@@ -113,7 +113,7 @@ function build_opf(pm::AbstractPowerModel)
     objective_min_fuel_cost(pm) # objective function, minimize generator cost
     # objective_min_fuel_and_flow_cost(pm)
 
-    # constraint_model_voltage(pm)
+    constraint_model_voltage(pm)
 
     # Slack bus constraint
     for i in ids(pm, :ref_buses)
@@ -130,7 +130,7 @@ function build_opf(pm::AbstractPowerModel)
         constraint_ohms_yt_from(pm, i)
         constraint_ohms_yt_to(pm, i)
 
-        # constraint_voltage_angle_difference(pm, i)
+        constraint_voltage_angle_difference(pm, i)
 
         # constraint_thermal_limit_from(pm, i)
         # constraint_thermal_limit_to(pm, i)
