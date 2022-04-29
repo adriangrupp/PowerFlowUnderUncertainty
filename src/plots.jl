@@ -15,6 +15,7 @@ function plotHistogram(x::Vector; kwargs...)
     alpha = haskey(kwargs, :alpha) ? kwargs[:alpha] : 0.5
     tight_layout() # spacing around labels
     xticks(rotation = 70) # rotate x axis labels
+    x = round.(x, digits=14) # avoid numerical artifacts of calculations
     plt[:hist](x, bins = bins, color = color, alpha = alpha)
     haskey(kwargs, :xlabel) ? xlabel(kwargs[:xlabel]) : nothing
     haskey(kwargs, :ylabel) ? ylabel(kwargs[:ylabel]) : nothing
